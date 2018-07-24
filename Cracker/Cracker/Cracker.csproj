@@ -38,7 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Cracker.Lib\Cracker.Lib.csproj" />
+    <ProjectReference Include="..\Cracker.Base\Cracker.Base.csproj" />
   </ItemGroup>
 
 </Project>
