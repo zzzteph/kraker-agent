@@ -2,7 +2,7 @@
 using System.IO;
 using Newtonsoft.Json.Linq;
 
-namespace Cracker.Lib.AgentSettings
+namespace Cracker.Base.AgentSettings
 {
 	public static class SettingsProvider
 	{

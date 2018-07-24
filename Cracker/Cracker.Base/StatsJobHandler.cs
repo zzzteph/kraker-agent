@@ -1,7 +1,7 @@
-﻿using Cracker.Lib.HashCat;
-using Cracker.Lib.HttpClient.Data;
+﻿using Cracker.Base.HashCat;
+using Cracker.Base.HttpClient.Data;
 
-namespace Cracker.Lib
+namespace Cracker.Base
 {
 	public class SpeedstatsJobHandler:JobHandler
 	{

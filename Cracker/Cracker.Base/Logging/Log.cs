@@ -1,6 +1,6 @@
 ﻿using NLog;
 
-namespace Cracker.Lib.Logging
+namespace Cracker.Base.Logging
 {
     public static class Log
 	{

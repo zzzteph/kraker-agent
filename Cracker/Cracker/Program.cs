@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading;
-using Cracker.Lib;
-using Cracker.Lib.AgentSettings;
-using Cracker.Lib.Logging;
+using Cracker.Base;
+using Cracker.Base.AgentSettings;
+using Cracker.Base.Logging;
 
 namespace Cracker
 {

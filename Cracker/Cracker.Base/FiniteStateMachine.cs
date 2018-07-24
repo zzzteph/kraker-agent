@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Cracker.Lib
+namespace Cracker.Base
 {
 	public class FiniteStateMachine
 	{

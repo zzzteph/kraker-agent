@@ -1,7 +1,7 @@
 ﻿using System;
-using Cracker.Lib.HashCat;
+using Cracker.Base.HashCat;
 
-namespace Cracker.Lib
+namespace Cracker.Base
 {
 	public class BadJobHandler:JobHandler
 	{

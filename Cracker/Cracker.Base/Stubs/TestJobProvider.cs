@@ -1,7 +1,7 @@
-﻿using Cracker.Lib.HttpClient.Data;
+﻿using Cracker.Base.HttpClient.Data;
 using Newtonsoft.Json.Linq;
 
-namespace Cracker.Lib.Stubs
+namespace Cracker.Base.Stubs
 {
 	public static class TestJobProvider
 	{

@@ -2,12 +2,12 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Cracker.Lib.AgentSettings;
-using Cracker.Lib.HashCat;
-using Cracker.Lib.HttpClient.Data;
-using Cracker.Lib.Logging;
+using Cracker.Base.AgentSettings;
+using Cracker.Base.HashCat;
+using Cracker.Base.HttpClient.Data;
+using Cracker.Base.Logging;
 
-namespace Cracker.Lib
+namespace Cracker.Base
 {
 	public class Agent
 	{

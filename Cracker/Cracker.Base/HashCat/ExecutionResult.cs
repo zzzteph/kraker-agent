@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Cracker.Lib.HashCat
+namespace Cracker.Base.HashCat
 {
 	public class ExecutionResult
 	{

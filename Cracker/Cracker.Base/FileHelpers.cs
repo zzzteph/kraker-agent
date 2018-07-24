@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Cracker.Lib
+namespace Cracker.Base
 {
     public static class FileHelpers
     {

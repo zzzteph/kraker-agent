@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Security.Cryptography;
 
-namespace Cracker.Lib.AgentSettings
+namespace Cracker.Base.AgentSettings
 {
 	public static class FileDescriptionBuilder
 	{

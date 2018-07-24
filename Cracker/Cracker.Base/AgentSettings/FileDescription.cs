@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace Cracker.Lib.AgentSettings
+namespace Cracker.Base.AgentSettings
 {
 	public class FileDescription
 	{

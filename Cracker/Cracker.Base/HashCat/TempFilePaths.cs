@@ -1,4 +1,4 @@
-﻿namespace Cracker.Lib.HashCat
+﻿namespace Cracker.Base.HashCat
 {
 	public class TempFilePaths
 	{

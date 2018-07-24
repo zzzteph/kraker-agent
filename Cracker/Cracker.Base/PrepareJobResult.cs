@@ -1,4 +1,4 @@
-﻿namespace Cracker.Lib
+﻿namespace Cracker.Base
 {
 	public class PrepareJobResult
 	{

@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Cracker.Lib.Logging;
+using Cracker.Base.Logging;
 using Newtonsoft.Json;
 
-namespace Cracker.Lib.HashCat
+namespace Cracker.Base.HashCat
 {
 	public static class SpeedCalculator
 	{

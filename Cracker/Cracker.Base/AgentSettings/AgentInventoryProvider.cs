@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Cracker.Lib.Logging;
+using Cracker.Base.Logging;
 using Newtonsoft.Json.Linq;
 
-namespace Cracker.Lib.AgentSettings
+namespace Cracker.Base.AgentSettings
 { 
 	public static class AgentInventoryProvider
 	{

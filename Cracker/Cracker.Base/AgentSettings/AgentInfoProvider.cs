@@ -4,9 +4,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using Cracker.Lib.HashCat;
+using Cracker.Base.HashCat;
 
-namespace Cracker.Lib.AgentSettings
+namespace Cracker.Base.AgentSettings
 {
 	public static class AgentInfoProvider
 	{

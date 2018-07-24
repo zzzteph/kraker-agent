@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Cracker.Lib.AgentSettings;
-using Cracker.Lib.HashCat;
-using Cracker.Lib.HttpClient.Data;
-using Cracker.Lib.Logging;
+using Cracker.Base.AgentSettings;
+using Cracker.Base.HashCat;
+using Cracker.Base.HttpClient.Data;
+using Cracker.Base.Logging;
 using Newtonsoft.Json.Linq;
 
-namespace Cracker.Lib.HttpClient
+namespace Cracker.Base.HttpClient
 {
     public class ClientProxy
 	{

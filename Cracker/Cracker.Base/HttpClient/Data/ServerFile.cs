@@ -1,4 +1,4 @@
-﻿namespace Cracker.Lib.HttpClient.Data
+﻿namespace Cracker.Base.HttpClient.Data
 {
     public class ServerFile
     {

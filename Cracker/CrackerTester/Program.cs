@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
-using Cracker.Lib.HashCat;
+using Cracker.Base.HashCat;
 
 namespace CrackerTester
 {

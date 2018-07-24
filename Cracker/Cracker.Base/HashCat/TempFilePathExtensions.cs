@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Cracker.Lib.HashCat
+namespace Cracker.Base.HashCat
 {
 	public static class TempFilePathExtensions
 	{

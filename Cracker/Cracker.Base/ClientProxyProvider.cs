@@ -1,7 +1,7 @@
-﻿using Cracker.Lib.HttpClient;
-using Cracker.Lib.Logging;
+﻿using Cracker.Base.HttpClient;
+using Cracker.Base.Logging;
 
-namespace Cracker.Lib
+namespace Cracker.Base
 {
 	public static class ClientProxyProvider
 	{

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Cracker.Lib.AgentSettings;
-using Cracker.Lib.HashCat;
-using Cracker.Lib.HttpClient.Data;
+using Cracker.Base.AgentSettings;
+using Cracker.Base.HashCat;
+using Cracker.Base.HttpClient.Data;
 
-namespace Cracker.Lib
+namespace Cracker.Base
 {
 	public class HashListJobHandler:JobHandler
 	{

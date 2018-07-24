@@ -4,10 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Cracker.Lib;
-using Cracker.Lib.AgentSettings;
-using Cracker.Lib.HashCat;
-using Cracker.Lib.Logging;
+using Cracker.Base;
+using Cracker.Base.AgentSettings;
+using Cracker.Base.Logging;
 
 namespace Cracker.Framework
 {

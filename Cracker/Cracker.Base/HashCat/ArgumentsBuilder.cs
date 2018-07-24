@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Cracker.Lib.AgentSettings;
-using Cracker.Lib.HttpClient.Data;
+using Cracker.Base.AgentSettings;
+using Cracker.Base.HttpClient.Data;
 
-namespace Cracker.Lib.HashCat
+namespace Cracker.Base.HashCat
 {
     public class ArgumentsBuilder
 	{

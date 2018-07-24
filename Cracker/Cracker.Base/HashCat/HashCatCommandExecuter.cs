@@ -6,10 +6,10 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Cracker.Lib.AgentSettings;
-using Cracker.Lib.Logging;
+using Cracker.Base.AgentSettings;
+using Cracker.Base.Logging;
 
-namespace Cracker.Lib.HashCat
+namespace Cracker.Base.HashCat
 {
 	public class HashCatCommandExecuter
 	{
