@@ -21,53 +21,36 @@ namespace Cracker.Lib.HttpClient
 			this.errorHandler = errorHandler;
 		}
 
-		public async Task<Job> GetJob()
-		{
-			return await GetAsync<Job>($"api/task/get/{SettingsProvider.CurrentSettings.Config.RegistrationKey}");
-		}
+		public async Task<Job> GetJob() =>
+		 await GetAsync<Job>($"api/task/get/{SettingsProvider.CurrentSettings.Config.RegistrationKey}");
 
-		public async Task<ServerFile> GetHashFile(string hashId)
-		{
-			return await GetAsync<ServerFile>($"api/hash/get/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/{hashId}");
-		}
+		public async Task<ServerFile> GetHashFile(string hashId) =>
+			await GetAsync<ServerFile>($"api/hash/get/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/{hashId}");
 
-		public async Task<ServerFile> GetPotFile(string hashId)
-		{
-			return await GetAsync<ServerFile>($"api/pot/get/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/{hashId}");
-		}
+		public async Task<ServerFile> GetPotFile(string hashId) => 
+			await GetAsync<ServerFile>($"api/pot/get/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/{hashId}");
 
-		public async Task SendRegistrationKey()
-		{
+		public async Task SendRegistrationKey() =>
 			await GetAsync<object>($"api/agent/{SettingsProvider.CurrentSettings.Config.RegistrationKey}");
-		}
-		public async Task SendAgentInfo()
-		{
+
+		public async Task SendAgentInfo() =>
 			await PostAsync<AgentInfo>($"api/agent/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/info", () => SettingsProvider.CurrentSettings.Config.AgentInfo);
-		}
-		public async Task SendAgentInventory()
-		{
+		
+		public async Task SendAgentInventory() =>
 			await PostAsync<IList<FileDescription>>($"api/agent/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/inventory", AgentInventoryProvider.Get);
-		}
-		public async Task<Stat[]> GetAgentSpeedStats()
-		{
-			return await GetAsync<Stat[]>($"api/agent/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/speedstats");
-		}
-		public async Task SendAgentSpeedStats(params SpeedStat[] speedStats)
-		{
+
+		public async Task SendAgentSpeedStats(params SpeedStat[] speedStats) =>
 			await PostAsync<object>($"api/agent/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/speedstats", () => speedStats);
-		}
-		public async Task<Job> Heartbeat()
-		{
-			return await GetAsync<Job>($"api/agent/{SettingsProvider.CurrentSettings.Config.RegistrationKey}");
-		}
+
+		public async Task<Job> Heartbeat() =>
+			await GetAsync<Job>($"api/agent/{SettingsProvider.CurrentSettings.Config.RegistrationKey}");
+
 		public async Task SendJobEnd(object result, string jobId)
 		{
 			await PostAsync<object>($"api/job/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/{jobId}/end",() => result);
 		}
-		public async Task SendJobStart(string jobId)
-		{
+		public async Task SendJobStart(string jobId) =>
 			await GetAsync<object>($"api/job/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/{jobId}/start");
-		}
 
 		public async Task<T> PostAsync<T>(string requestUri, Func<object> valueProvider)
 		{
@@ -110,11 +93,5 @@ namespace Cracker.Lib.HttpClient
 				return default(T);
 			}
 		}
-	}
-
-	public class Stat
-	{
-		public string Id { get; set; }
-		public string Name { get; set; }
 	}
 }
