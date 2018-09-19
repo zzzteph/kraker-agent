@@ -61,9 +61,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Cracker.Lib\Cracker.Lib.csproj">
-      <Project>{8dca8f06-4fbb-4f71-b051-fb2bc30a669d}</Project>
-      <Name>Cracker.Lib</Name>
+    <ProjectReference Include="..\Cracker.Base\Cracker.Base.csproj">
+      <Project>{bc378455-b4db-4624-b998-e2dacfc2dbee}</Project>
+      <Name>Cracker.Base</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
