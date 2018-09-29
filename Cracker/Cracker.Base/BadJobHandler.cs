@@ -6,7 +6,7 @@ namespace Cracker.Base
 	public class BadJobHandler:JobHandler
 	{
 		private readonly PrepareJobResult result;
-		public BadJobHandler(string error)
+		public BadJobHandler(string error, Settings.Settings settings ):base(settings)
 		{
 			this.result = new PrepareJobResult
 			{
@@ -14,10 +14,8 @@ namespace Cracker.Base
 				IsReadyForExecution = false
 			};
 		}
-		public override PrepareJobResult Prepare()
-		{
-			return result;
-		}
+
+		public override PrepareJobResult Prepare() => result;
 
 		public override void Clear(ExecutionResult executionResult)
 		{

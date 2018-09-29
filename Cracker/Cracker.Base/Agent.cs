@@ -2,8 +2,8 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Cracker.Base.AgentSettings;
 using Cracker.Base.HashCat;
+using Cracker.Base.HttpClient;
 using Cracker.Base.HttpClient.Data;
 using Cracker.Base.Logging;
 
@@ -15,31 +15,35 @@ namespace Cracker.Base
 		private JobHandler jobHandler;
 		private Task<ExecutionResult> hashcatTask;
 		private CancellationTokenSource cts;
+		private readonly Settings.Settings settings;
+		private readonly ServerClient serverClient;
 
-		public Agent()
+		public Agent(Settings.Settings settings)
 		{
 			@switch = new FiniteStateMachine(WaitJob);
+			this.settings = settings;
+			serverClient = new ServerClient(settings.Config);
 		}
 
 		public void WaitJob()
 		{
 			@switch.SetStateAction(DoNothing);
 			
-			var job = ClientProxyProvider.Client.GetJob().Result;
+			var job = serverClient.GetJob().Result;
 			if (job?.Type == null)
 			{
 				@switch.SetStateAction(WaitJob);
 				return;
 			}
 
-			jobHandler = JobHandler.Create(job);
+			jobHandler = JobHandler.Create(job, settings);
 			var preparationResult = jobHandler.Prepare();
 			if (preparationResult.IsReadyForExecution)
 			{
 				cts = new CancellationTokenSource();
-				var hashcatPath = SettingsProvider.CurrentSettings.Config.HashCatPath;
+				var hashcatPath = settings.Config.HashCatPath;
 				Environment.CurrentDirectory = Path.GetDirectoryName(hashcatPath);
-				hashcatTask = new HashCatCommandExecuter(preparationResult.HashCatArguments, hashcatPath)
+				hashcatTask = new HashCatCommandExecuter(preparationResult.HashCatArguments, settings.Config)
 					.Execute(cts.Token, false, job.JobId);
 
 				@switch.SetStateAction(ProcessJob);
@@ -61,7 +65,7 @@ namespace Cracker.Base
 			if (!hashcatTask.IsCompleted)
 			{
 				//todo хэшкот может завершить работу и не сгенерировать событие Exit, тогда задача зависает, надо решить проблему!
-				var heartbeat = ClientProxyProvider.Client.Heartbeat().Result;
+				var heartbeat = serverClient.Heartbeat().Result;
 				if (heartbeat?.Type == JobType.Stop)
 				{
 					Log.Message($"Ну началось, откатываемся... Задача будет отменена.");

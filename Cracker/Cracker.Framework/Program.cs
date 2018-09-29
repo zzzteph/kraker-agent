@@ -1,62 +1,71 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cracker.Base;
-using Cracker.Base.AgentSettings;
+using Cracker.Base.HttpClient;
 using Cracker.Base.Logging;
+using Cracker.Base.Settings;
 
 namespace Cracker.Framework
 {
 	class Program
 	{
-		private static TaskCompletionSource<bool> waiter = new TaskCompletionSource<bool>();
-		private static readonly Config config = SettingsProvider.CurrentSettings.Config;
+		private static readonly TaskCompletionSource<bool> cancelKeyPressWater = new TaskCompletionSource<bool>();
 
 		private static Timer checkInventoryTimer;
 		private static Timer agentTimer;
 
 		static void Main(string[] args)
 		{
-			Environment.CurrentDirectory = Path.GetDirectoryName(SettingsProvider.CurrentSettings.Config.HashCatPath);
-
-			if (!SettingsProvider.CanWorking)
+			var startResult = new Startup().Start();
+			if (!startResult.IsSuccess)
+			{
+				Log.Error($"При старте возникли несовместимые с работой проблемы: {startResult.Error}");
 				return;
+			}
 
-			Console.CancelKeyPress += (s, o) => waiter.SetResult(true);
+			var settings = startResult.Result;
+			var serverClient = new ServerClient(settings.Config);
+
+			//todo: нужно ли теперь это? 
+			Environment.CurrentDirectory = Path.GetDirectoryName(settings.Config.HashCatPath);
+			Console.CancelKeyPress += (s, o) => cancelKeyPressWater.SetResult(true);
 
 			AddYourselfToWerExcluded();
 
-			InitializeAgentForServer();
+			InitializeAgentForServer(settings, serverClient);
 
-			InitializeCheckInventoryTimer();
+			InitializeCheckInventoryTimer(settings, serverClient);
 
-			Work();
+			Work(settings);
 
 			CleanUp();
 
 			RemoveYourselfFromWerExcluded();
 		}
 
-		private static void InitializeAgentForServer()
+		private static void InitializeAgentForServer(Settings settings, ServerClient serverClient)
 		{
-			ClientProxyProvider.Client.SendRegistrationKey()
-				.ContinueWith(o => ClientProxyProvider.Client.SendAgentInfo())
-				.ContinueWith(o => ClientProxyProvider.Client.SendAgentInventory())
+			var agentInventoryManager = new AgentInventoryManager(settings.WorkedDirectories);
+			serverClient.SendRegistrationKey()
+				.ContinueWith(o => serverClient.SendAgentInfo(settings.AgentInfo))
+				.ContinueWith(o => serverClient.SendAgentInventory(agentInventoryManager.Get()))
 				.Wait();
 		}
 
-		private static void InitializeCheckInventoryTimer()
+		private static void InitializeCheckInventoryTimer(Settings settings, ServerClient serverClient)
 		{
-			var inventoryCheckPeriod = TimeSpan.FromSeconds(config.InventoryCheckPeriod.Value);
+			var agentInventoryManager = new AgentInventoryManager(settings.WorkedDirectories);
+			var inventoryCheckPeriod = TimeSpan.FromSeconds(settings.Config.InventoryCheckPeriod.Value);
+			
 			checkInventoryTimer = new Timer(o =>
 			{
 				try
 				{
-					if (AgentInventoryProvider.UpdateFileDescriptions())
-						ClientProxyProvider.Client.SendAgentInventory().ConfigureAwait(false);
+					if (agentInventoryManager.UpdateFileDescriptions())
+						serverClient.SendAgentInventory(agentInventoryManager.Get()).ConfigureAwait(false);
 				}
 				catch (Exception e)
 				{
@@ -69,10 +78,10 @@ namespace Cracker.Framework
 			}, null, TimeSpan.FromSeconds(0), TimeSpan.FromMilliseconds(-1));
 		}
 
-		private static void Work()
+		private static void Work(Settings settings)
 		{
-			var hearbeatPeriod = TimeSpan.FromSeconds(config.HearbeatPeriod.Value);
-			var agent = new Agent();
+			var hearbeatPeriod = TimeSpan.FromSeconds(settings.Config.HearbeatPeriod.Value);
+			var agent = new Agent(settings);
 			agentTimer = new Timer(o =>
 				{
 					try
@@ -82,13 +91,13 @@ namespace Cracker.Framework
 					catch (Exception e)
 					{
 						Log.Message($"Словили необработанное исключение в работе агента: {e.ToString()}");
-						agent = new Agent();
+						agent = new Agent(settings);
 					}
 				},
 				null, TimeSpan.FromSeconds(0), hearbeatPeriod);
 
 			Log.Message("Агент работает");
-			waiter.Task.Wait();
+			cancelKeyPressWater.Task.Wait();
 			Log.Message("Ой, всё!");
 		}
 

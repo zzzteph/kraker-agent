@@ -5,9 +5,8 @@ namespace Cracker.Base
 {
 	public class SpeedstatsJobHandler:JobHandler
 	{
-		private TempFilePaths paths;
 		private readonly Job job;
-		public SpeedstatsJobHandler(Job job)
+		public SpeedstatsJobHandler(Job job, Settings.Settings settings) : base(settings)
 		{
 			this.job = job;
 		}
@@ -24,7 +23,7 @@ namespace Cracker.Base
 		{
 			var speed = SpeedCalculator.CalculateBenchmark(executionResult.Output);
 			var stat = new SpeedStat { Mode = job.Command.M, Speed = speed.ToString() };
-			ClientProxyProvider.Client.SendAgentSpeedStats(stat).ConfigureAwait(false);
+			serverClient.SendAgentSpeedStats(stat).ConfigureAwait(false);
 		}
 	}
 }

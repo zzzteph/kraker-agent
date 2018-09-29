@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Cracker.Base.AgentSettings;
 using Cracker.Base.HashCat;
 using Cracker.Base.HttpClient.Data;
 
@@ -11,9 +10,10 @@ namespace Cracker.Base
 	{
 		private TempFilePaths paths;
 		private readonly Job job;
-		public HashListJobHandler(Job job)
+		public HashListJobHandler(Job job, Settings.Settings settings) : base(settings)
 		{
 			this.job = job;
+			this.paths = settings.WorkedDirectories.TempDirectoryPath.BuildTempFilePaths();
 		}
 		public override PrepareJobResult Prepare()
 		{
@@ -24,7 +24,7 @@ namespace Cracker.Base
 					Error = $"Нет hashId у работы с типом {job.Type}"
 				};
 			
-			var hashfile = ClientProxyProvider.Client.GetHashFile(job.HashId).Result;
+			var hashfile = serverClient.GetHashFile(job.HashId).Result;
 			if (string.IsNullOrEmpty(hashfile?.Data))
 			{
 				return new PrepareJobResult
@@ -33,15 +33,13 @@ namespace Cracker.Base
 					IsReadyForExecution = false
 				};
 			}
-
-			paths = SettingsProvider.CurrentSettings.TempDirectoryPath.BuildTempFilePaths();
 			File.WriteAllBytes(paths.HashFile, Convert.FromBase64String(hashfile.Data));
 			File.WriteAllText(paths.PotFile, string.Empty);
 
 			string arguments;
 			try
 			{
-				arguments = new ArgumentsBuilder().BuildArguments(job, paths);
+				arguments = new ArgumentsBuilder(settings.WorkedDirectories).BuildArguments(job, paths);
 			}
 			catch (Exception e)
 			{
@@ -71,16 +69,16 @@ namespace Cracker.Base
 
 			if (error!=null)
 				if (error.Contains("No hashes loaded"))
-					ClientProxyProvider.Client.PostAsync<object>(
-						$"api/hash/update/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/{job.HashId}",
+					serverClient.Client.PostAsync<object>(
+						$"api/hash/update/{settings.Config.RegistrationKey}/{job.HashId}",
 						() => new { keyspace = 0 }).ConfigureAwait(false);
 				else
-					ClientProxyProvider.Client.PostAsync<object>(
-						$"api/hash/update/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/{job.HashId}",
+					serverClient.Client.PostAsync<object>(
+						$"api/hash/update/{settings.Config.RegistrationKey}/{job.HashId}",
 						() => new { error }).ConfigureAwait(false);
 			else
-				ClientProxyProvider.Client.PostAsync<object>(
-					$"api/hash/update/{SettingsProvider.CurrentSettings.Config.RegistrationKey}/{job.HashId}",
+				serverClient.Client.PostAsync<object>(
+					$"api/hash/update/{settings.Config.RegistrationKey}/{job.HashId}",
 						() => new { keyspace=executionResult.Output.Count }).ConfigureAwait(false);
 		}
 	}

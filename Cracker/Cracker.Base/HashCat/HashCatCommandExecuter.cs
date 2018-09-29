@@ -6,8 +6,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Cracker.Base.AgentSettings;
+using Cracker.Base.HttpClient;
 using Cracker.Base.Logging;
+using Cracker.Base.Settings;
 
 namespace Cracker.Base.HashCat
 {
@@ -19,24 +20,26 @@ namespace Cracker.Base.HashCat
 		private readonly object sync;
 		private readonly int killHashcatSilencePeriod;
 		private readonly int killHashcatAfterRepeatedStrings;
+		private readonly ServerClient serverClient;
 
-		public HashCatCommandExecuter(string arguments, string hashcatPath)
+		public HashCatCommandExecuter(string arguments, Config config)
 		{
 			hashcatStartInfo = new ProcessStartInfo
 			{
-				FileName = Path.GetFileName(hashcatPath),
+				FileName = Path.GetFileName(config.HashCatPath),
 				UseShellExecute = false,
 				RedirectStandardOutput = true,
 				RedirectStandardError = true,
 				RedirectStandardInput = true,
 				CreateNoWindow = true,
 				Arguments = arguments,
-				WorkingDirectory = Path.GetDirectoryName(hashcatPath)
+				WorkingDirectory = Path.GetDirectoryName(config.HashCatPath)
 			};
 			sync = new object();
-			killHashcatSilencePeriod = SettingsProvider.CurrentSettings.Config.KillHashcatSilencePeriod ?? 60;
-			killHashcatAfterRepeatedStrings = SettingsProvider.CurrentSettings.Config.KillHashcatAfterRepeatedStrings ?? 1000;
+			killHashcatSilencePeriod = config.KillHashcatSilencePeriod ?? 60;
+			killHashcatAfterRepeatedStrings = config.KillHashcatAfterRepeatedStrings ?? 1000;
 			Log.Message($"Команда для hashCat:{hashcatStartInfo.FileName} {hashcatStartInfo.Arguments}");
+			serverClient = new ServerClient(config);
 		}
 
 		public async Task<ExecutionResult> Execute(CancellationToken ct, bool waitNullReceiveOutput = false,
@@ -66,7 +69,7 @@ namespace Cracker.Base.HashCat
 
 						process.Kill();
 						wasKill = true;
-						ClientProxyProvider.Client.SendJobEnd(new {error = $"Не было output от hashcat в течении {killHashcatSilencePeriod} минут. Сворачиваем лавочку"}, jobId)
+						serverClient.SendJobEnd(new {error = $"Не было output от hashcat в течении {killHashcatSilencePeriod} минут. Сворачиваем лавочку"}, jobId)
 							.ConfigureAwait(false);
 					}, null, silencePeriod, TimeSpan.FromMilliseconds(-1));
 

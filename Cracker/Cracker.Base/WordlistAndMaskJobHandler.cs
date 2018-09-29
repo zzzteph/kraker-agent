@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Cracker.Base.AgentSettings;
 using Cracker.Base.HashCat;
+using Cracker.Base.HttpClient;
 using Cracker.Base.HttpClient.Data;
 
 namespace Cracker.Base
@@ -11,7 +11,7 @@ namespace Cracker.Base
 	{
 		private readonly Job job;
 		private TempFilePaths paths;
-		public WordlistAndMaskJobHandler(Job job)
+		public WordlistAndMaskJobHandler(Job job, Settings.Settings settings) : base(settings)
 		{
 			this.job = job;
 		}
@@ -25,8 +25,8 @@ namespace Cracker.Base
 					IsReadyForExecution = false
 				};
 
-			paths = SettingsProvider.CurrentSettings.TempDirectoryPath.BuildTempFilePaths();
-			var hashfile = ClientProxyProvider.Client.GetHashFile(job.HashId).Result;
+			paths = settings.WorkedDirectories.TempDirectoryPath.BuildTempFilePaths();
+			var hashfile = serverClient.GetHashFile(job.HashId).Result;
 			if (string.IsNullOrEmpty(hashfile?.Data))
 			{
 				return new PrepareJobResult
@@ -39,7 +39,7 @@ namespace Cracker.Base
 			string arguments;
 			try
 			{
-				arguments = new ArgumentsBuilder().BuildArguments(job, paths);
+				arguments = new ArgumentsBuilder(settings.WorkedDirectories).BuildArguments(job, paths);
 			}
 			catch (Exception e)
 			{
@@ -53,11 +53,11 @@ namespace Cracker.Base
 
 			File.WriteAllBytes(paths.HashFile, Convert.FromBase64String(hashfile.Data));
 
-			var potFile = ClientProxyProvider.Client.GetPotFile(job.HashId).Result;
+			var potFile = serverClient.GetPotFile(job.HashId).Result;
 
 			File.WriteAllBytes(paths.PotFile, Convert.FromBase64String(potFile?.Data??string.Empty));
 
-			ClientProxyProvider.Client.SendJobStart(job.JobId).ConfigureAwait(false);
+			serverClient.SendJobStart(job.JobId).ConfigureAwait(false);
 
 			return new PrepareJobResult
 			{
@@ -80,7 +80,7 @@ namespace Cracker.Base
 			var err = executionResult.Errors.FirstOrDefault(e => e.Contains("No hashes loaded") || e.Contains("Unhandled Exception"));
 			if (err != null)
 			{
-				ClientProxyProvider.Client.SendJobEnd(new { error = err }, job.JobId).ConfigureAwait(false);
+				serverClient.SendJobEnd(new { error = err }, job.JobId).ConfigureAwait(false);
 				paths.OutputFile.SoftDelete("outfile");
 				paths.PotFile.SoftDelete("potfile");
 				return;
@@ -92,14 +92,14 @@ namespace Cracker.Base
 				var outfile = Convert.ToBase64String(File.ReadAllBytes(paths.OutputFile));
 				var potfile = Convert.ToBase64String(File.ReadAllBytes(paths.PotFile));
 
-				ClientProxyProvider.Client.SendJobEnd(new {outfile, potfile, speed}, job.JobId).ConfigureAwait(false);
+				serverClient.SendJobEnd(new {outfile, potfile, speed}, job.JobId).ConfigureAwait(false);
 				paths.OutputFile.SoftDelete("outfile");
 				paths.PotFile.SoftDelete("potfile");
 			}
 			else
 			{
 				Logging.Log.Message("Output file не существует, сорян.");
-				ClientProxyProvider.Client.SendJobEnd(new {potfile = string.Empty, speed }, job.JobId).ConfigureAwait(false);
+				serverClient.SendJobEnd(new {potfile = string.Empty, speed }, job.JobId).ConfigureAwait(false);
 			}
 		}
 	}

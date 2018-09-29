@@ -2,11 +2,11 @@
 using System.Linq;
 using System.Security.Cryptography;
 
-namespace Cracker.Base.AgentSettings
+namespace Cracker.Base.Settings
 {
-	public static class FileDescriptionBuilder
+	public class FileDescriptionBuilder
 	{
-		public static FileDescription Build(string filePath)
+		public FileDescription Build(string filePath)
 		{
 			var fileInfo = new FileInfo(filePath);
 			var fd = new FileDescription

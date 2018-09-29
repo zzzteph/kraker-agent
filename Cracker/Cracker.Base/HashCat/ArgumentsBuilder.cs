@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Cracker.Base.AgentSettings;
 using Cracker.Base.HttpClient.Data;
+using Cracker.Base.Settings;
 
 namespace Cracker.Base.HashCat
 {
     public class ArgumentsBuilder
 	{
-		private IDictionary<string, Func<Job, TempFilePaths, string>> maps;
+		private readonly IDictionary<string, Func<Job, TempFilePaths, string>> maps;
+		private readonly WorkedDirectories workedDirectories;
 
-		public ArgumentsBuilder()
+		public ArgumentsBuilder(WorkedDirectories workedDirectories)
 		{
 			maps = new Dictionary<string, Func<Job, TempFilePaths, string>>
 			{
@@ -19,7 +20,7 @@ namespace Cracker.Base.HashCat
 				[JobType.Mask] = BuildMaskJobArguments,
 				[JobType.Wordlist] = BuildWordlistJobArguments
 			};
-
+			this.workedDirectories = workedDirectories;
 		}
 		public string BuildArguments(Job job, TempFilePaths paths) => maps[job.Type](job, paths);
 		private string BuildTemplateJobArguments(Job job, TempFilePaths paths)
@@ -32,7 +33,7 @@ namespace Cracker.Base.HashCat
 					break;
 				case TemplateType.Wordlist:
 					command = BuildR(job.Command.TemplateOptions.Wordlist)
-							+ $" \"{Path.Combine(SettingsProvider.CurrentSettings.WordlistPath, job.Command.TemplateOptions.Wordlist.Wordlist)}\"";
+							+ $" \"{Path.Combine(workedDirectories.WordlistPath, job.Command.TemplateOptions.Wordlist.Wordlist)}\"";
 					break;
 				default:
 					throw new ArgumentException($"Кривой template_type для задачи, с таким не работаем: {job.TemplateType}");
@@ -64,12 +65,12 @@ namespace Cracker.Base.HashCat
 			return $"{BuildOptions(c)} --skip={c.Skip} --limit={c.Limit} -m {c.M} "
 					+ BuildR(c.TemplateOptions.Wordlist)
 						+ $" --outfile=\"{paths.OutputFile}\" " +
-						$"{filePaths} \"{Path.Combine(SettingsProvider.CurrentSettings.WordlistPath, c.TemplateOptions.Wordlist.Wordlist)}\""; 
+						$"{filePaths} \"{Path.Combine(workedDirectories.WordlistPath, c.TemplateOptions.Wordlist.Wordlist)}\""; 
 		}
 
 		private string BuildR(WordlistTemplate wt) => string.IsNullOrEmpty(wt?.Rule)
 				? string.Empty
-				: $"-r \"{Path.Combine(SettingsProvider.CurrentSettings.RulesPath, wt.Rule)}\"";
+				: $"-r \"{Path.Combine(workedDirectories.RulesPath, wt.Rule)}\"";
 
 		private string BuildOptions(Command command) => string.Join(" ", command.Options);
 

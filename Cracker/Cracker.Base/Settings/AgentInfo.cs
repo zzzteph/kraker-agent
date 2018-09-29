@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Cracker.Base.AgentSettings
+namespace Cracker.Base.Settings
 {
 	public class AgentInfo
 	{

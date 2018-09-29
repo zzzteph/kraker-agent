@@ -1,7 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
-using Cracker.Base.HashCat;
 
 namespace CrackerTester
 {
@@ -25,8 +23,8 @@ namespace CrackerTester
 
 			var command =
 				$"--quiet --status --status-timer=1 --machine-readable --logfile-disable --restore-disable --outfile-format=2 -m 0 -o ertyui {args[1]} {args[2]}";
-			var result = new HashCatCommandExecuter(command, args[0]).Execute(new CancellationToken()).Result;
-			Console.WriteLine($"{command} done! ExitCode: {result.HashCatExitCode}, Error: {result.ErrorMessage}");
+			//var result = new HashCatCommandExecuter(command, args[0]).Execute(new CancellationToken()).Result;
+			//Console.WriteLine($"{command} done! ExitCode: {result.HashCatExitCode}, Error: {result.ErrorMessage}");
 		}
 	}
 }

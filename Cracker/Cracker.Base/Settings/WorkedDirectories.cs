@@ -1,10 +1,9 @@
-﻿namespace Cracker.Base.AgentSettings
+﻿namespace Cracker.Base.Settings
 {
-	public class Settings
+	public class WorkedDirectories
 	{
 		public string WordlistPath { get; set; }
 		public string RulesPath { get; set; }
 		public string TempDirectoryPath { get; set; }
-		public Config Config { get; set; }
 	}
 }
