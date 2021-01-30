@@ -3,15 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2024
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThrowEx", "ThrowEx\ThrowEx.csproj", "{9C37F469-AC52-4E7E-A0DB-9EE9EEC8A4CA}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrackerTester", "CrackerTester\CrackerTester.csproj", "{1724AF5B-2ABD-4FB6-B988-C83D527EF2D7}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cracker", "Cracker\Cracker.csproj", "{F85469F7-6491-4DA6-9E33-119C89852EAC}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cracker.Framework", "Cracker.Framework\Cracker.Framework.csproj", "{72574FD0-7CFF-4F70-87BE-0F7D66BD1837}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cracker.Base", "Cracker.Base\Cracker.Base.csproj", "{BC378455-B4DB-4624-B998-E2DACFC2DBEE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cracker.App", "Cracker.App\Cracker.App.csproj", "{00665EDC-0451-450A-9F4E-D545FE2FD4E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cracker.Tester", "Cracker.Tester\Cracker.Tester.csproj", "{9B3BDB80-BFC3-4C96-8A25-16E79FBD5E0F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,26 +15,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9C37F469-AC52-4E7E-A0DB-9EE9EEC8A4CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9C37F469-AC52-4E7E-A0DB-9EE9EEC8A4CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9C37F469-AC52-4E7E-A0DB-9EE9EEC8A4CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9C37F469-AC52-4E7E-A0DB-9EE9EEC8A4CA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1724AF5B-2ABD-4FB6-B988-C83D527EF2D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1724AF5B-2ABD-4FB6-B988-C83D527EF2D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1724AF5B-2ABD-4FB6-B988-C83D527EF2D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1724AF5B-2ABD-4FB6-B988-C83D527EF2D7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F85469F7-6491-4DA6-9E33-119C89852EAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F85469F7-6491-4DA6-9E33-119C89852EAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F85469F7-6491-4DA6-9E33-119C89852EAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F85469F7-6491-4DA6-9E33-119C89852EAC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{72574FD0-7CFF-4F70-87BE-0F7D66BD1837}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{72574FD0-7CFF-4F70-87BE-0F7D66BD1837}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{72574FD0-7CFF-4F70-87BE-0F7D66BD1837}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{72574FD0-7CFF-4F70-87BE-0F7D66BD1837}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BC378455-B4DB-4624-B998-E2DACFC2DBEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BC378455-B4DB-4624-B998-E2DACFC2DBEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BC378455-B4DB-4624-B998-E2DACFC2DBEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BC378455-B4DB-4624-B998-E2DACFC2DBEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{00665EDC-0451-450A-9F4E-D545FE2FD4E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00665EDC-0451-450A-9F4E-D545FE2FD4E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{00665EDC-0451-450A-9F4E-D545FE2FD4E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{00665EDC-0451-450A-9F4E-D545FE2FD4E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B3BDB80-BFC3-4C96-8A25-16E79FBD5E0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B3BDB80-BFC3-4C96-8A25-16E79FBD5E0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B3BDB80-BFC3-4C96-8A25-16E79FBD5E0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B3BDB80-BFC3-4C96-8A25-16E79FBD5E0F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

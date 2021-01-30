@@ -3,11 +3,11 @@ using Newtonsoft.Json.Linq;
 
 namespace Cracker.Base.Stubs
 {
-	public static class TestJobProvider
-	{
-		public static Job Get()
-		{
-			return JObject.Parse(@"{
+    public static class TestJobProvider
+    {
+        public static Job Get()
+        {
+            return JObject.Parse(@"{
     ""command"": {
 		""options"": [
 		""--quiet"",
@@ -30,7 +30,6 @@ namespace Cracker.Base.Stubs
 	""hashfile"": ""MDA4MGEwODVhZDc1NGYyMmI3ODgyN2U3ZDY4NmI1ZDg="",
 	""taskid"": ""1""
 }").ToObject<Job>();
-
-		}
-	}
+        }
+    }
 }
