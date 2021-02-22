@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Text.Json;
 using Cracker.Base.Logging;
 using Cracker.Base.Model;
-using Newtonsoft.Json.Linq;
 
 namespace Cracker.Base.Settings
 {
@@ -27,7 +27,7 @@ namespace Cracker.Base.Settings
             Config config;
             try
             {
-                config = JObject.Parse(File.ReadAllText(configPatn)).ToObject<Config>();
+                config = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPatn));
             }
             catch (Exception e)
             {
@@ -77,7 +77,7 @@ namespace Cracker.Base.Settings
         {
             try
             {
-                File.WriteAllText(configPatn, JObject.FromObject(config).ToString());
+                File.WriteAllText(configPatn, JsonSerializer.Serialize(config));
                 return OperationResult.Success;
             }
             catch (Exception e)

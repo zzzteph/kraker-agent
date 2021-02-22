@@ -1,46 +1,51 @@
 ﻿using System;
 using System.Linq;
 using Cracker.Base.HashCat;
-using Cracker.Base.HttpClient.Data;
+using Cracker.Base.Model;
+using Cracker.Base.Model.Jobs;
+using Cracker.Base.Model.Responses;
+using Cracker.Base.Services;
 
 namespace Cracker.Base
 {
-    public class TemplateJobHandler : JobHandler
-    {
-        private readonly Job job;
+    public interface ITemplateJobHandler : IJobHandler
+    { }
 
-        public TemplateJobHandler(Job job, Settings.Settings settings) : base(settings)
+    public class TemplateJobHandler : ITemplateJobHandler
+    {
+        private readonly Settings.Settings _settings;
+        private readonly IKrakerApi _krakerApi;
+
+        public TemplateJobHandler(Settings.Settings settings,
+            IKrakerApi krakerApi)
         {
-            this.job = job;
+            _settings = settings;
+            _krakerApi = krakerApi;
         }
 
-        public override PrepareJobResult Prepare()
+        public PrepareJobResult Prepare(AbstractJob job)
         {
             try
             {
-                var arguments = new ArgumentsBuilder(settings.WorkedDirectories).BuildArguments(job, null);
-                return new PrepareJobResult
-                {
-                    HashCatArguments = arguments,
-                    IsReadyForExecution = true
-                };
+                var arguments = new ArgumentsBuilder(_settings.WorkedDirectories).BuildArguments(job, null);
+
+                return PrepareJobResult.FromArguments(arguments);
             }
             catch (Exception e)
             {
-                return new PrepareJobResult
-                {
-                    Error = $"Не смогли сгенерить аргументы для задачи JobId:{job.JobId}, Error: {e}",
-                    IsReadyForExecution = false
-                };
+                return PrepareJobResult.FromError($"Can't generate arguments for the job:{job}, Error: {e}");
             }
         }
 
-        public override void Clear(ExecutionResult executionResult)
+        public void Clear(ExecutionResult executionResult)
         {
             var keyspace = executionResult?.Output.LastOrDefault(o => o != null);
-            serverClient.Client.PostAsync<object>(
-                $"api/template/update/{settings.Config.RegistrationKey}/{job.TemplateId}",
-                () => new {keyspace}).ConfigureAwait(false);
+            var templateId = (executionResult.Job as TemplateJob).TemplateId;
+
+            _krakerApi.SendTemplate(_settings.Config.AgentId,
+                templateId,
+                new TemplateResponse(long.Parse(keyspace), null)
+            );
         }
     }
 }

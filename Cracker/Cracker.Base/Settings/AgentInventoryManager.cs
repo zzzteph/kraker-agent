@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using Cracker.Base.Logging;
 using Cracker.Base.Model;
-using Newtonsoft.Json.Linq;
 
 namespace Cracker.Base.Settings
 {
@@ -28,8 +28,8 @@ namespace Cracker.Base.Settings
             {
                 if (File.Exists(inventoryFilePath))
                 {
-                    fileDescriptions = JObject.Parse(File.ReadAllText(inventoryFilePath))
-                        .ToObject<Dictionary<string, FileDescription>>();
+                    fileDescriptions = JsonSerializer.Deserialize<Dictionary<string, FileDescription>>
+                            (File.ReadAllText(inventoryFilePath));
                 }
                 else
                 {
@@ -37,7 +37,7 @@ namespace Cracker.Base.Settings
                         .Concat(Directory.GetFiles(workedDirectories.WordlistPath))
                         .ToDictionary(p => p, descriptionBuilder.Build);
 
-                    File.WriteAllText(inventoryFilePath, JObject.FromObject(fileDescriptions).ToString());
+                    File.WriteAllText(inventoryFilePath, JsonSerializer.Serialize(fileDescriptions));
                 }
 
                 return OperationResult.Success;
@@ -94,11 +94,11 @@ namespace Cracker.Base.Settings
             if (isChanged)
             {
                 Log.Message("[Инветарь] Обнаружены изменения, сохраняю новые данные в своих закромах");
-                File.WriteAllText(inventoryFilePath, JObject.FromObject(fileDescriptions).ToString());
+                File.WriteAllText(inventoryFilePath, JsonSerializer.Serialize(fileDescriptions));
             }
             else
             {
-                Log.Message("[Инветарь] Проверка завершена, изменения не обнаружены");
+                Log.Message("[Inventory] Проверка завершена, изменения не обнаружены");
             }
 
             return isChanged;

@@ -1,4 +1,6 @@
-﻿namespace Cracker.Base.Settings
+﻿using Cracker.Base.Model;
+
+namespace Cracker.Base.Settings
 {
     public class Settings
     {

@@ -4,9 +4,11 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Cracker.Base;
-using Cracker.Base.HttpClient;
+using Cracker.Base.Injection;
 using Cracker.Base.Logging;
+using Cracker.Base.Services;
 using Cracker.Base.Settings;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cracker.App
 {
@@ -19,7 +21,8 @@ namespace Cracker.App
 
         private static void Main(string[] args)
         {
-            var startResult = new Startup().Start();
+            var container = ServiceProviderBuilder.Build();
+            var startResult = container.GetService<IStartup>().Start();
             if (!startResult.IsSuccess)
             {
                 Log.Error($"При старте возникли несовместимые с работой проблемы: {startResult.Error}");
@@ -27,7 +30,7 @@ namespace Cracker.App
             }
 
             var settings = startResult.Result;
-            var serverClient = new ServerClient(settings.Config);
+            var krakerApi = container.GetService<IKrakerApi>();
 
             //todo: нужно ли теперь это? 
             Environment.CurrentDirectory = Path.GetDirectoryName(settings.Config.HashCat.Path);
@@ -35,27 +38,27 @@ namespace Cracker.App
 
             AddYourselfToWerExcluded();
 
-            InitializeAgentForServer(settings, serverClient);
+            InitializeAgentForServer(settings, krakerApi);
 
-            InitializeCheckInventoryTimer(settings, serverClient);
+            InitializeCheckInventoryTimer(settings, krakerApi);
 
-            Work(settings);
+            Work(settings, container);
 
             CleanUp();
 
             RemoveYourselfFromWerExcluded();
         }
 
-        private static void InitializeAgentForServer(Settings settings, ServerClient serverClient)
+        private static void InitializeAgentForServer(Settings settings, IKrakerApi krakerApi)
         {
             var agentInventoryManager = new AgentInventoryManager(settings.WorkedDirectories);
-            serverClient.SendRegistrationKey()
-                .ContinueWith(o => serverClient.SendAgentInfo(settings.AgentInfo))
-                .ContinueWith(o => serverClient.SendAgentInventory(agentInventoryManager.Get()))
+            krakerApi.RegisterAgent()
+                .ContinueWith(o => krakerApi.SendAgentInfo(settings.Config.AgentId, settings.AgentInfo))
+                .ContinueWith(o => krakerApi.SendAgentInventory(settings.Config.AgentId, agentInventoryManager.Get()))
                 .Wait();
         }
 
-        private static void InitializeCheckInventoryTimer(Settings settings, ServerClient serverClient)
+        private static void InitializeCheckInventoryTimer(Settings settings, IKrakerApi krakerApi)
         {
             var agentInventoryManager = new AgentInventoryManager(settings.WorkedDirectories);
             var inventoryCheckPeriod = TimeSpan.FromSeconds(settings.Config.InventoryCheckPeriod.Value);
@@ -65,7 +68,7 @@ namespace Cracker.App
                 try
                 {
                     if (agentInventoryManager.UpdateFileDescriptions())
-                        serverClient.SendAgentInventory(agentInventoryManager.Get()).ConfigureAwait(false);
+                        krakerApi.SendAgentInventory(settings.Config.AgentId, agentInventoryManager.Get());
                 }
                 catch (Exception e)
                 {
@@ -78,10 +81,10 @@ namespace Cracker.App
             }, null, TimeSpan.FromSeconds(0), TimeSpan.FromMilliseconds(-1));
         }
 
-        private static void Work(Settings settings)
+        private static void Work(Settings settings, IServiceProvider container)
         {
             var hearbeatPeriod = TimeSpan.FromSeconds(settings.Config.HearbeatPeriod.Value);
-            var agent = new Agent(settings);
+            var agent = new Agent(settings, container.GetService<IJobHandlerProvider>());
             agentTimer = new Timer(o =>
                 {
                     try
@@ -91,7 +94,7 @@ namespace Cracker.App
                     catch (Exception e)
                     {
                         Log.Message($"Словили необработанное исключение в работе агента: {e}");
-                        agent = new Agent(settings);
+                        agent = container.GetService<Agent>();
                     }
                 },
                 null, TimeSpan.FromSeconds(0), hearbeatPeriod);

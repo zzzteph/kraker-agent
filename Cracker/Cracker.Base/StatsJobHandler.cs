@@ -1,31 +1,42 @@
 ﻿using Cracker.Base.HashCat;
-using Cracker.Base.HttpClient.Data;
+using Cracker.Base.Model;
+using Cracker.Base.Model.Jobs;
+using Cracker.Base.Model.Responses;
+using Cracker.Base.Services;
 
 namespace Cracker.Base
 {
-    public class SpeedstatsJobHandler : JobHandler
+    public interface ISpeedstatsJobHandler : IJobHandler
     {
-        private readonly Job job;
+    }
 
-        public SpeedstatsJobHandler(Job job, Settings.Settings settings) : base(settings)
+    public class SpeedstatsJobHandler : ISpeedstatsJobHandler
+    {
+        private readonly Settings.Settings _settings;
+        private readonly IKrakerApi _krakerApi;
+
+        public SpeedstatsJobHandler(Settings.Settings settings,
+            IKrakerApi krakerApi)
         {
-            this.job = job;
+            _settings = settings;
+            _krakerApi = krakerApi;
         }
 
-        public override PrepareJobResult Prepare()
+        public PrepareJobResult Prepare(AbstractJob job)
         {
-            return new()
-            {
-                IsReadyForExecution = true,
-                HashCatArguments = $"-b -m {job.Command.M} --machine-readable"
-            };
+            return PrepareJobResult.FromArguments($"-b -m {(job as SpeedStatJob).HashTypeId} --machine-readable");
         }
 
-        public override void Clear(ExecutionResult executionResult)
+        public void Clear(ExecutionResult executionResult)
         {
             var speed = SpeedCalculator.CalculateBenchmark(executionResult.Output);
-            var stat = new SpeedStat {Mode = job.Command.M, Speed = speed.ToString()};
-            serverClient.SendAgentSpeedStats(stat).ConfigureAwait(false);
+            
+            var hashTypeId = (executionResult.Job as SpeedStatJob).HashTypeId;
+            var stat = new SpeedStatResponse(hashTypeId, speed.ToString());
+
+            _krakerApi.SendSpeedStats(_settings.Config.AgentId,
+                hashTypeId,
+                stat);
         }
     }
 }

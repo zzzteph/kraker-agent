@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Cracker.Base.Logging;
-using Newtonsoft.Json;
 
 namespace Cracker.Base.HashCat
 {
@@ -45,12 +44,5 @@ namespace Cracker.Base.HashCat
 
             return speeds.Average();
         }
-    }
-
-    public class SpeedStat
-    {
-        [JsonProperty(PropertyName = "mode")] public string Mode { get; set; }
-
-        [JsonProperty(PropertyName = "speed")] public string Speed { get; set; }
     }
 }

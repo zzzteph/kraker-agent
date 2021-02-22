@@ -2,7 +2,7 @@
 {
     public record Config
     {
-        public string RegistrationKey { get; set; }
+        public string AgentId { get; set; }
         public HashCatSettings HashCat { get; set; } 
         public string ServerUrl { get; set; }
         public int? InventoryCheckPeriod { get; set; }

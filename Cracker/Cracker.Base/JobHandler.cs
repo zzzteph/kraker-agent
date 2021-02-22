@@ -1,43 +1,32 @@
-﻿using System.Threading;
-using Cracker.Base.HashCat;
-using Cracker.Base.HttpClient;
-using Cracker.Base.HttpClient.Data;
+﻿using System.Collections.Generic;
+using Cracker.Base.Model;
+using Cracker.Base.Model.Jobs;
 
 namespace Cracker.Base
 {
-    public abstract class JobHandler
+    public interface IJobHandlerProvider
     {
-        protected readonly ServerClient serverClient;
-        protected readonly Settings.Settings settings;
+        IJobHandler Get(AbstractJob job);
+    }
 
-        protected JobHandler(Settings.Settings settings)
+    public class JobHandlerProvider : IJobHandlerProvider
+    {
+        private readonly IIncorrectJobHandler _incorrectJobHandler;
+        private readonly IReadOnlyDictionary<JobType, IJobHandler> _map;
+
+        public JobHandlerProvider(IBruteforceJobHandler bruteforceJobHandler,
+            IIncorrectJobHandler incorrectJobHandler)
         {
-            this.settings = settings;
-            ct = new CancellationToken();
-            serverClient = new ServerClient(settings.Config);
-        }
-
-        public CancellationToken ct { get; }
-
-        public abstract PrepareJobResult Prepare();
-        public abstract void Clear(ExecutionResult executionResult);
-
-        public static JobHandler Create(Job job, Settings.Settings settings)
-        {
-            switch (job?.Type)
+            _incorrectJobHandler = incorrectJobHandler;
+            _map = new Dictionary<JobType, IJobHandler>
             {
-                case JobType.Wordlist:
-                case JobType.Mask:
-                    return new WordlistAndMaskJobHandler(job, settings);
-                case JobType.Template:
-                    return new TemplateJobHandler(job, settings);
-                case JobType.HashList:
-                    return new HashListJobHandler(job, settings);
-                case JobType.Speedstat:
-                    return new SpeedstatsJobHandler(job, settings);
-                default:
-                    return new BadJobHandler($"Странненький templateType: {job?.TemplateType}", settings);
-            }
+                {JobType.Bruteforce, bruteforceJobHandler}
+            };
         }
+
+        public IJobHandler Get(AbstractJob job) =>
+            _map.TryGetValue(job.Type, out var handler)
+                ? handler
+                : _incorrectJobHandler;
     }
 }

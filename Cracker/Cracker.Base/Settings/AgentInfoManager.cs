@@ -3,12 +3,12 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Json;
 using System.Threading;
 using Cracker.Base.HashCat;
-using Cracker.Base.HttpClient;
 using Cracker.Base.Logging;
 using Cracker.Base.Model;
-using Newtonsoft.Json.Linq;
+using Cracker.Base.Services;
 
 namespace Cracker.Base.Settings
 {
@@ -20,20 +20,19 @@ namespace Cracker.Base.Settings
         {
             agentInfoFilePath = Path.Combine(currentDirectory, "agentInfo.json");
         }
-
-
-        public AgentInfo Build(HashCatSettings config, IServerClient serverClient)
+        
+        public AgentInfo Build(HashCatSettings config, IKrakerApi krakerApi)
         {
             Environment.CurrentDirectory = Path.GetDirectoryName(config.Path);
             var hostName = Dns.GetHostName();
-            var hw = new HashCatCommandExecuter("-I", config, serverClient).Execute(new CancellationToken(), true).Result.Output;
+            var hw = new HashCatCommandExecuter(PrepareJobResult.FromArguments("-I"), config, krakerApi).Execute(new CancellationToken(), true).Result.Output;
             return new AgentInfo
             {
                 HostName = hostName,
                 Ip = Dns.GetHostAddresses(hostName)
                     .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)
                     ?.ToString(),
-                HashcatVersion = new HashCatCommandExecuter("-V", config, serverClient).Execute(new CancellationToken()).Result
+                HashcatVersion = new HashCatCommandExecuter(PrepareJobResult.FromArguments("-V"), config, krakerApi).Execute(new CancellationToken()).Result
                     .Output[0],
                 HW = string.Join(Environment.NewLine, hw),
                 OperationalSystem = Environment.OSVersion.VersionString
@@ -46,14 +45,16 @@ namespace Cracker.Base.Settings
                 return OperationResult<AgentInfo>.Success(null);;
             try
             {
-                var agentInfo = JObject.Parse(File.ReadAllText(agentInfoFilePath)).ToObject<AgentInfo>();
+                var agentInfo = JsonSerializer
+                    .Deserialize<AgentInfo>(File.ReadAllText(agentInfoFilePath));
+                
                 return OperationResult<AgentInfo>.Success(agentInfo);
             }
             catch (Exception e)
             {
                 Log.Error(e);
                 return OperationResult<AgentInfo>.Fail(
-                    "Файл с информацией об агенте существует но его не удалось получить");
+                    "The agent info file exists, but I couldn't read it");
             }
         }
 
@@ -62,13 +63,14 @@ namespace Cracker.Base.Settings
         {
             try
             {
-                File.WriteAllText(agentInfoFilePath, JObject.FromObject(agentInfo).ToString());
+                File.WriteAllText(agentInfoFilePath,
+                    JsonSerializer.Serialize(agentInfo));
                 return OperationResult.Success;
             }
             catch (Exception e)
             {
                 Log.Error(e);
-                return OperationResult.Fail("Не удалось сохранить файл с информацией об агенте");
+                return OperationResult.Fail("Fail during save the agent info file");
             }
         }
     }

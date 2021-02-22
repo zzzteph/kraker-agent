@@ -1,97 +1,59 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using Cracker.Base.HttpClient.Data;
+﻿using System.IO;
+using Cracker.Base.Model;
+using Cracker.Base.Model.Jobs;
 using Cracker.Base.Settings;
 
 namespace Cracker.Base.HashCat
 {
     public class ArgumentsBuilder
     {
-        private readonly IDictionary<string, Func<Job, TempFilePaths, string>> maps;
+        //todo вынести в конфиг. Можно прикрепить и форс сюда же
+        private const string Options =
+            "--quiet --status --status-timer=1 --machine-readable --logfile-disable --restore-disable --outfile-format=2";
+
         private readonly WorkedDirectories workedDirectories;
 
         public ArgumentsBuilder(WorkedDirectories workedDirectories)
         {
-            maps = new Dictionary<string, Func<Job, TempFilePaths, string>>
-            {
-                [JobType.Template] = BuildTemplateJobArguments,
-                [JobType.HashList] = BuildHashlistJobArguments,
-                [JobType.Mask] = BuildMaskJobArguments,
-                [JobType.Wordlist] = BuildWordlistJobArguments
-            };
             this.workedDirectories = workedDirectories;
         }
 
-        public string BuildArguments(Job job, TempFilePaths paths)
-        {
-            return maps[job.Type](job, paths);
-        }
-
-        private string BuildTemplateJobArguments(Job job, TempFilePaths paths)
-        {
-            string command;
-            switch (job.TemplateType)
+        public string BuildArguments(AbstractJob job, TempFilePaths paths) =>
+            job switch
             {
-                case TemplateType.Mask:
-                    command = job.Command.TemplateOptions.Mask.ToString();
-                    break;
-                case TemplateType.Wordlist:
-                    command = BuildR(job.Command.TemplateOptions.Wordlist)
-                              + $" \"{Path.Combine(workedDirectories.WordlistPath, job.Command.TemplateOptions.Wordlist.Wordlist)}\"";
-                    break;
-                default:
-                    throw new ArgumentException(
-                        $"Кривой template_type для задачи, с таким не работаем: {job.TemplateType}");
-            }
+                TemplateMaskJob tmj => $"{Options} -a 3 "
+                                       + (tmj.Charset1 is null ? string.Empty : $"-1 {tmj.Charset1} ")
+                                       + (tmj.Charset2 is null ? string.Empty : $"-2 {tmj.Charset2} ")
+                                       + (tmj.Charset3 is null ? string.Empty : $"-3 {tmj.Charset3} ")
+                                       + (tmj.Charset4 is null ? string.Empty : $"-4 {tmj.Charset4} ")
+                                       + tmj.Mask,
 
-            return $"{BuildOptions(job.Command)} {command}";
-        }
+                TemplateWordListJob twl => $"{Options} {BuildRule(twl.Rule)}"
+                                           + $" \"{Path.Combine(workedDirectories.WordlistPath, twl.Wordlist)}\"",
 
-        private string BuildHashlistJobArguments(Job job, TempFilePaths paths)
-        {
-            var c = job.Command;
-            return $"{BuildOptions(c)} -m {c.M} {BuildFilePaths(paths)}";
-        }
+                HashListJob hlj => $"{Options} -m {hlj.HashTypeId} {BuildFilePaths(paths)}",
 
-        private string BuildMaskJobArguments(Job job, TempFilePaths paths)
-        {
-            var filePaths = BuildFilePaths(paths);
-            var c = job.Command;
-            return $"{BuildOptions(c)} --skip={c.Skip} --limit={c.Limit} -m {c.M} "
-                   + $" --outfile=\"{paths.OutputFile}\" "
-                   + $"{filePaths} {c.TemplateOptions.Mask}";
-        }
+                BruteforceJob bfj => $"{Options} --skip={bfj.Skip} --limit={bfj.Limit} -m {bfj.HashListTypeId} "
+                                     + $" --outfile=\"{paths.OutputFile}\" "
+                                     + $"{BuildFilePaths(paths)} {bfj.Mask}",
 
-        private string BuildWordlistJobArguments(Job job, TempFilePaths paths)
-        {
-            var c = job.Command;
-            var filePaths = BuildFilePaths(paths);
-            ;
+                WordListJob wlj => $"{Options} --skip={wlj.Skip} --limit={wlj.Limit} -m {wlj.HashTypeId} "
+                                   + BuildRule(wlj.Rule)
+                                   + $" --outfile=\"{paths.OutputFile}\" " +
+                                   $"{BuildFilePaths(paths)} \"{Path.Combine(workedDirectories.WordlistPath, wlj.Wordlist)}\"",
 
-            return $"{BuildOptions(c)} --skip={c.Skip} --limit={c.Limit} -m {c.M} "
-                   + BuildR(c.TemplateOptions.Wordlist)
-                   + $" --outfile=\"{paths.OutputFile}\" " +
-                   $"{filePaths} \"{Path.Combine(workedDirectories.WordlistPath, c.TemplateOptions.Wordlist.Wordlist)}\"";
-        }
+                _ => null
+            };
 
-        private string BuildR(WordlistTemplate wt)
-        {
-            return string.IsNullOrEmpty(wt?.Rule)
+
+        private string BuildRule(string? rule) =>
+            string.IsNullOrEmpty(rule)
                 ? string.Empty
-                : $"-r \"{Path.Combine(workedDirectories.RulesPath, wt.Rule)}\"";
-        }
+                : $"-r \"{Path.Combine(workedDirectories.RulesPath, rule)}\"";
 
-        private string BuildOptions(Command command)
-        {
-            return string.Join(" ", command.Options);
-        }
-
-        public string BuildFilePaths(TempFilePaths paths)
-        {
-            return paths.PotFile == null
+        private string BuildFilePaths(TempFilePaths paths) =>
+            paths.PotFile == null
                 ? $" \"{paths.HashFile}\" "
                 : $"--potfile-path=\"{paths.PotFile}\" \"{paths.HashFile}\" ";
-        }
     }
 }

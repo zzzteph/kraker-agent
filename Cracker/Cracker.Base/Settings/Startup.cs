@@ -1,34 +1,45 @@
 ﻿using System;
 using System.IO;
-using Cracker.Base.HttpClient;
 using Cracker.Base.Model;
+using Cracker.Base.Services;
+using Refit;
 
 namespace Cracker.Base.Settings
 {
-    public class Startup
+    public interface IStartup
     {
-        private readonly AgentInfoManager agentInfoManager;
-        private readonly ConfigManager configManager;
-        private readonly WorkedDirectoriesManager workedDirectoriesManager;
+        OperationResult<Settings> Start();
+        bool NeedGenerateNewRegistrationKey(Config config, AgentInfo actualInfo, AgentInfo oldInfo);
+    }
 
-        public Startup()
+    public class Startup : IStartup
+    {
+        private readonly AgentInfoManager _agentInfoManager;
+        private readonly ConfigManager _configManager;
+        private readonly WorkedDirectoriesManager _workedDirectoriesManager;
+        private readonly IKrakerApi _krakerApi;
+
+        public Startup(IKrakerApi krakerApi, 
+            AgentInfoManager agentInfoManager,
+            ConfigManager configManager,
+            WorkedDirectoriesManager workedDirectoriesManager)
         {
-            var currentDirectory = Directory.GetCurrentDirectory();
-            configManager = new ConfigManager(currentDirectory);
-            agentInfoManager = new AgentInfoManager(currentDirectory);
-            workedDirectoriesManager = new WorkedDirectoriesManager(currentDirectory);
+            _krakerApi = krakerApi;
+            _configManager = configManager;
+            _agentInfoManager = agentInfoManager;
+            _workedDirectoriesManager = workedDirectoriesManager;
         }
 
         public OperationResult<Settings> Start()
         {
-            var configResult = configManager.Build();
+            var configResult = _configManager.Build();
             if (!configResult.IsSuccess)
                 return OperationResult<Settings>.Fail(configResult.Error);
 
             var config = configResult.Result;
 
-            var agentInfo = agentInfoManager.Build(config.HashCat, new ServerClient(config));
-            var oldAgentInfoResult = agentInfoManager.GetFromFile();
+            var agentInfo = _agentInfoManager.Build(config.HashCat, RestService.For<IKrakerApi>(""));
+            var oldAgentInfoResult = _agentInfoManager.GetFromFile();
             if (!oldAgentInfoResult.IsSuccess)
                 return OperationResult<Settings>.Fail(oldAgentInfoResult.Error);
 
@@ -36,18 +47,18 @@ namespace Cracker.Base.Settings
 
             if (NeedGenerateNewRegistrationKey(config, agentInfo, oldAgentInfo))
             {
-                config.RegistrationKey = Guid.NewGuid().ToString();
+                config.AgentId = Guid.NewGuid().ToString();
 
-                var saveConfig = configManager.Save(config);
+                var saveConfig = _configManager.Save(config);
                 if (!saveConfig.IsSuccess)
                     return OperationResult<Settings>.Fail(saveConfig.Error);
 
-                var saveAgentInfo = agentInfoManager.Save(agentInfo);
+                var saveAgentInfo = _agentInfoManager.Save(agentInfo);
                 if (!saveAgentInfo.IsSuccess)
                     return OperationResult<Settings>.Fail(saveAgentInfo.Error);
             }
 
-            var workedDirectoriesResult = workedDirectoriesManager.Prepare();
+            var workedDirectoriesResult = _workedDirectoriesManager.Prepare();
             if (!workedDirectoriesResult.IsSuccess)
                 return OperationResult<Settings>.Fail(workedDirectoriesResult.Error);
 
@@ -66,13 +77,13 @@ namespace Cracker.Base.Settings
             });
         }
 
-        private bool NeedGenerateNewRegistrationKey(Config config, AgentInfo actualInfo, AgentInfo oldInfo)
+        public bool NeedGenerateNewRegistrationKey(Config config, AgentInfo actualInfo, AgentInfo oldInfo)
         {
             return oldInfo == null
                    || oldInfo.OperationalSystem != actualInfo.OperationalSystem
                    || oldInfo.HostName != actualInfo.HostName
                    || oldInfo.Ip != actualInfo.Ip
-                   || string.IsNullOrEmpty(config.RegistrationKey);
+                   || string.IsNullOrEmpty(config.AgentId);
         }
     }
 }

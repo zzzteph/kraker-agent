@@ -3,57 +3,60 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Cracker.Base.HashCat;
-using Cracker.Base.HttpClient;
-using Cracker.Base.HttpClient.Data;
 using Cracker.Base.Logging;
+using Cracker.Base.Services;
+using Refit;
 
 namespace Cracker.Base
 {
     public class Agent
     {
-        private readonly ServerClient serverClient;
-        private readonly Settings.Settings settings;
-        private readonly FiniteStateMachine @switch;
-        private CancellationTokenSource cts;
-        private Task<ExecutionResult> hashcatTask;
-        private JobHandler jobHandler;
+        private readonly IKrakerApi _krakerApi;
+        private readonly Settings.Settings _settings;
+        private readonly FiniteStateMachine _switch;
+        private CancellationTokenSource? cts;
+        private Task<ExecutionResult>? hashcatTask;
+        private IJobHandler? jobHandler;
+        private readonly IJobHandlerProvider _jobHandlerProvider;
 
-        public Agent(Settings.Settings settings)
+        public Agent(Settings.Settings settings, 
+            IJobHandlerProvider jobHandlerProvider)
         {
-            @switch = new FiniteStateMachine(WaitJob);
-            this.settings = settings;
-            serverClient = new ServerClient(settings.Config);
+            _switch = new FiniteStateMachine(WaitJob);
+            _settings = settings;
+            _jobHandlerProvider = jobHandlerProvider;
+            _krakerApi = RestService.For<IKrakerApi>("https://kraker.weakpass.com");
         }
 
         public void WaitJob()
         {
-            @switch.SetStateAction(DoNothing);
+            _switch.SetStateAction(DoNothing);
 
-            var job = serverClient.GetJob().Result;
-            if (job?.Type == null)
+            var job = _krakerApi.GetJob(_settings.Config.AgentId).Result;
+            if (job.Type == null)
             {
-                @switch.SetStateAction(WaitJob);
+                _switch.SetStateAction(WaitJob);
                 return;
             }
 
-            jobHandler = JobHandler.Create(job, settings);
-            var preparationResult = jobHandler.Prepare();
+            jobHandler = _jobHandlerProvider.Get(job);
+            var preparationResult = jobHandler.Prepare(job);
             if (preparationResult.IsReadyForExecution)
             {
                 cts = new CancellationTokenSource();
-                var hashcatPath = settings.Config.HashCat.Path;
+                var hashcatPath = _settings.Config.HashCat.Path;
                 Environment.CurrentDirectory = Path.GetDirectoryName(hashcatPath);
-                hashcatTask = new HashCatCommandExecuter(preparationResult.HashCatArguments, settings.Config.HashCat, serverClient)
-                    .Execute(cts.Token, false, job.JobId);
+                hashcatTask = new HashCatCommandExecuter(preparationResult, _settings.Config.HashCat, _krakerApi)
+                    .Execute(cts.Token);
 
-                @switch.SetStateAction(ProcessJob);
+                _switch.SetStateAction(ProcessJob);
                 return;
             }
 
             Log.Message($"Задача от сервера не валидна: {preparationResult.Error}");
             jobHandler = null;
             hashcatTask = null;
-            @switch.SetStateAction(WaitJob);
+            _switch.SetStateAction(WaitJob);
         }
 
         public void DoNothing()
@@ -62,19 +65,18 @@ namespace Cracker.Base
 
         public void ProcessJob()
         {
-            @switch.SetStateAction(DoNothing);
+            _switch.SetStateAction(DoNothing);
 
             if (!hashcatTask.IsCompleted)
             {
-                //todo хэшкот может завершить работу и не сгенерировать событие Exit, тогда задача зависает, надо решить проблему!
-                var heartbeat = serverClient.Heartbeat().Result;
-                if (heartbeat?.Type == JobType.Stop)
+                var heartbeat = _krakerApi.SendAgentStatus(_settings.Config.AgentId).Result;
+                if (heartbeat.Status == "cancel")
                 {
-                    Log.Message("Ну началось, откатываемся... Задача будет отменена.");
+                    Log.Message("The job is cancel");
                     cts.Cancel();
                 }
 
-                @switch.SetStateAction(ProcessJob);
+                _switch.SetStateAction(ProcessJob);
                 return;
             }
 
@@ -82,12 +84,12 @@ namespace Cracker.Base
 
             jobHandler = null;
             hashcatTask = null;
-            @switch.SetStateAction(WaitJob);
+            _switch.SetStateAction(WaitJob);
         }
 
         public void Work()
         {
-            @switch.RunAction();
+            _switch.RunAction();
         }
     }
 }

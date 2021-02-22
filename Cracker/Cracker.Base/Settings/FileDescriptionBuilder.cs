@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using Cracker.Base.Model;
 
 namespace Cracker.Base.Settings
 {

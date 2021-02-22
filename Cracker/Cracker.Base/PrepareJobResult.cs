@@ -1,9 +1,19 @@
-﻿namespace Cracker.Base
+﻿using Cracker.Base.HashCat;
+using Cracker.Base.Model.Jobs;
+
+namespace Cracker.Base
 {
-    public class PrepareJobResult
+    public record PrepareJobResult(AbstractJob? Job,
+        string HashCatArguments,
+        TempFilePaths? Paths,
+        bool IsReadyForExecution,
+        string Error
+    )
     {
-        public string HashCatArguments { get; set; }
-        public bool IsReadyForExecution { get; set; }
-        public string Error { get; set; }
+        public static PrepareJobResult FromArguments(string hashCatArguments)
+            => new PrepareJobResult(null, hashCatArguments, null, true, null);
+
+        public static PrepareJobResult FromError(string error)
+            => new PrepareJobResult(null, null, null, false, error);
     }
 }

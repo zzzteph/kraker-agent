@@ -6,25 +6,28 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Cracker.Base.HttpClient;
 using Cracker.Base.Logging;
+using Cracker.Base.Services;
 using Cracker.Base.Settings;
 
 namespace Cracker.Base.HashCat
 {
     public class HashCatCommandExecuter
     {
-        private static readonly Regex rg = new("STATUS[ \t]*([4,6-8])[ \t]*", RegexOptions.IgnoreCase);
-        private static Timer workTimer;
-        private readonly ProcessStartInfo hashcatStartInfo;
-        private readonly int killHashcatAfterRepeatedStrings;
-        private readonly int killHashcatSilencePeriod;
-        private readonly IServerClient serverClient;
-        private readonly object sync;
+        private static readonly Regex _rg = new("STATUS[ \t]*([4,6-8])[ \t]*", RegexOptions.IgnoreCase);
+        private readonly ProcessStartInfo _startInfo;
+        private readonly int _repeatedStringsLimit;
+        private readonly int _silencePeriodLimit;
+        private readonly IKrakerApi _krakerApi;
+        private readonly object _sync;
+        private readonly PrepareJobResult _prepareJobResult;
 
-        public HashCatCommandExecuter(string arguments, HashCatSettings config, IServerClient serverClient)
+        public HashCatCommandExecuter(PrepareJobResult prepareJobResult, HashCatSettings config, IKrakerApi krakerApi)
         {
-            hashcatStartInfo = new ProcessStartInfo
+            _prepareJobResult = prepareJobResult;
+            _krakerApi = krakerApi;
+
+            _startInfo = new ProcessStartInfo
             {
                 FileName = Path.GetFileName(config.Path),
                 UseShellExecute = false,
@@ -32,19 +35,23 @@ namespace Cracker.Base.HashCat
                 RedirectStandardError = true,
                 RedirectStandardInput = true,
                 CreateNoWindow = true,
-                Arguments = arguments,
+                Arguments = prepareJobResult.HashCatArguments,
                 WorkingDirectory = Path.GetDirectoryName(config.Path)
             };
-            sync = new object();
-            killHashcatSilencePeriod = config.SilencePeriodBeforeKill ?? 60;
-            killHashcatAfterRepeatedStrings = config.RepeatedStringsBeforeKill ?? 1000;
-            Log.Message($"Команда для hashCat:{hashcatStartInfo.FileName} {hashcatStartInfo.Arguments}");
-            this.serverClient = serverClient;
+
+            _sync = new object();
+
+            _silencePeriodLimit = config.SilencePeriodBeforeKill ?? 60;
+            _repeatedStringsLimit = config.RepeatedStringsBeforeKill ?? 1000;
+
+
+            Log.Message($"Build a command for hashcat:{_startInfo.FileName} {_startInfo.Arguments}");
         }
 
-        public async Task<ExecutionResult> Execute(CancellationToken ct, bool waitNullReceiveOutput = false,
-            string jobId = "")
+        public async Task<ExecutionResult> Execute(CancellationToken ct, bool waitNullReceiveOutput = false)
         {
+            
+            Timer workTimer = null;
             try
             {
                 var output = new List<string>();
@@ -56,12 +63,12 @@ namespace Cracker.Base.HashCat
 
                 using (var process = new Process
                 {
-                    StartInfo = hashcatStartInfo,
+                    StartInfo = _startInfo,
                     EnableRaisingEvents = true
                 })
                 {
                     var receiveNullData = new TaskCompletionSource<bool>();
-                    var silencePeriod = TimeSpan.FromMinutes(killHashcatSilencePeriod);
+                    var silencePeriod = TimeSpan.FromMinutes(_silencePeriodLimit);
                     workTimer = new Timer(o =>
                     {
                         if (taskEnd || wasKill)
@@ -69,14 +76,9 @@ namespace Cracker.Base.HashCat
 
                         process.Kill();
                         wasKill = true;
-                        serverClient
-                            .SendJobEnd(
-                                new
-                                {
-                                    error =
-                                        $"Не было output от hashcat в течении {killHashcatSilencePeriod} минут. Сворачиваем лавочку"
-                                }, jobId)
-                            .ConfigureAwait(false);
+
+                        Log.Message(
+                            $"Haven't been any output from hashcat for {_silencePeriodLimit} minutes. Kill the process for job: {_prepareJobResult.Job}");
                     }, null, silencePeriod, TimeSpan.FromMilliseconds(-1));
 
 
@@ -95,27 +97,25 @@ namespace Cracker.Base.HashCat
                         output.Add(ea.Data);
                         Log.Message($"Hashcat out: {ea.Data}");
 
-                        if (outputIsTheSame > killHashcatAfterRepeatedStrings)
+                        if (outputIsTheSame > _repeatedStringsLimit)
                         {
-                            Log.Message($"Долго получаем одинаковый вывод. Количество повторов - {outputIsTheSame}");
+                            Log.Message($"Too long get the same output. Repeats number: {outputIsTheSame}");
                             isSuccessful = false;
                         }
-
-                        ;
 
                         if (ct.IsCancellationRequested)
                             isSuccessful = false;
 
-                        if (!rg.IsMatch(ea.Data) && isSuccessful)
+                        if (!_rg.IsMatch(ea.Data) && isSuccessful)
                             return;
 
-                        lock (sync)
+                        lock (_sync)
                         {
                             if (wasKill)
                                 return;
                             try
                             {
-                                Log.Message("Убиваем hashcat");
+                                Log.Message("Kill hashcat");
                                 var proc = s as Process;
                                 proc.StandardInput.WriteLineAsync("q");
 
@@ -126,7 +126,7 @@ namespace Cracker.Base.HashCat
                             }
                             catch (Exception e)
                             {
-                                Log.Message($"При умерщвлении процесса получили исключение {e}");
+                                Log.Message($"Get an exception during killing the process {e}");
                             }
                         }
                     };
@@ -145,24 +145,22 @@ namespace Cracker.Base.HashCat
                     if (waitNullReceiveOutput)
                         await receiveNullData.Task;
                     workTimer.Dispose();
-                    return new ExecutionResult
-                    {
-                        HashCatExitCode = code,
-                        Output = output,
-                        Errors = errors,
-                        IsSuccessful = isSuccessful
-                    };
+                    return new ExecutionResult(code,
+                        output,
+                        errors,
+                        _prepareJobResult.Paths,
+                        _prepareJobResult.Job,
+                        isSuccessful,
+                        null
+                    );
                 }
             }
             catch (Exception e)
             {
                 workTimer?.Dispose();
 
-                Log.Message($"Исключение при работе с Hashcat: {e}");
-                return new ExecutionResult
-                {
-                    ErrorMessage = e.ToString()
-                };
+                Log.Message($"Get an exception during hashcat working: {e}");
+                return ExecutionResult.FromError(e.ToString());
             }
         }
 

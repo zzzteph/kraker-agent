@@ -1,14 +1,23 @@
 ﻿using System.Collections.Generic;
+using Cracker.Base.Model.Jobs;
 
 namespace Cracker.Base.HashCat
 {
-    public class ExecutionResult
+    public record ExecutionResult(int? HashCatExitCode,
+        IReadOnlyList<string>? Output,
+        IReadOnlyList<string>? Errors,
+        TempFilePaths? Paths,
+        AbstractJob Job,
+        bool IsSuccessful,
+        string? ErrorMessage
+    )
     {
-        public int? HashCatExitCode { get; set; }
-
-        public IReadOnlyList<string> Output { get; set; }
-        public IReadOnlyList<string> Errors { get; set; }
-        public bool IsSuccessful { get; set; }
-        public string ErrorMessage { get; set; }
+        public static ExecutionResult FromError(string error) => new ExecutionResult(null,
+            null,
+            null,
+            null,
+            null,
+            false,
+            error);
     }
 }
