@@ -47,7 +47,7 @@ namespace Cracker.App
 
             AddYourselfToWerExcluded(logger);
 
-            InitializeAgentForServer(agentId, agentInfo, inventory, krakerApi);
+            await InitializeAgentForServer(agentId, agentInfo, inventory, krakerApi);
 
             InitializeCheckInventoryTimer(logger, agentId, config, krakerApi, container.GetService<IInventoryManager>());
 
@@ -58,12 +58,10 @@ namespace Cracker.App
             RemoveYourselfFromWerExcluded();
         }
 
-        private static void InitializeAgentForServer(AgentId agentId, AgentInfo agentInfo, Inventory inventory, IKrakerApi krakerApi)
+        private static async Task InitializeAgentForServer(AgentId agentId, AgentInfo agentInfo, Inventory inventory, IKrakerApi krakerApi)
         {
-            krakerApi.RegisterAgent()
-                .ContinueWith(o => krakerApi.SendAgentInfo(agentId.Value, agentInfo))
-                .ContinueWith(o => krakerApi.SendAgentInventory(agentId.Value, inventory.Files))
-                .Wait();
+            await krakerApi.SendAgentInfo(agentId.Id, agentInfo);
+            await krakerApi.SendAgentInventory(agentId.Id, inventory.Files);
         }
 
         private static void InitializeCheckInventoryTimer(ILogger logger,
@@ -80,7 +78,7 @@ namespace Cracker.App
                 {
                     var (inventoryWasChanged, inventory) = inventoryManager.UpdateFileDescriptions();
                     if (inventoryWasChanged)
-                        krakerApi.SendAgentInventory(agentId.Value, inventory.Files);
+                        krakerApi.SendAgentInventory(agentId.Id, inventory.Files);
                 }
                 catch (Exception e)
                 {

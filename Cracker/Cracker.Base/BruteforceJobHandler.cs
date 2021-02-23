@@ -34,7 +34,7 @@ namespace Cracker.Base
             _argumentsBuilder = argumentsBuilder;
             _speedCalculator = speedCalculator;
             _logger = logger;
-            _agentId = agentIdManager.GetCurrent().Value;
+            _agentId = agentIdManager.GetCurrent().Id;
             _workedFolders = workedFoldersProvider.Get();
         }
 

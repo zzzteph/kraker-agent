@@ -25,7 +25,7 @@ namespace Cracker.Base.Injection
                     .Or<HttpRequestException>()
                     .WaitAndRetryAsync(3,
                         attempt => TimeSpan.FromMilliseconds(300),
-                        (ex, span) => Log.Error(ex.Exception.Message)));
+                        (ex, span) => Log.Error(ex?.Exception?.Message)));
 
             return services;
         }

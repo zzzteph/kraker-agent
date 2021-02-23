@@ -13,7 +13,6 @@ namespace Cracker.Base.Domain.Inventory
     public interface IInventoryManager
     {
         OperationResult<Inventory> Initialize();
-        Inventory GetCurrentInventory();
         (bool wasChanged, Inventory Inventory) UpdateFileDescriptions();
     }
 
@@ -61,11 +60,7 @@ namespace Cracker.Base.Domain.Inventory
         }
 
 
-        public Inventory GetCurrentInventory()
-        {
-            return _currentInventory;
-        }
-
+       
         public (bool wasChanged, Inventory Inventory) UpdateFileDescriptions()
         {
             _logger.Information("[inventory] Time to check inventory!");

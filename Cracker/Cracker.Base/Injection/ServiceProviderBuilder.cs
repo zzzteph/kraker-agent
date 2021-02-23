@@ -8,6 +8,7 @@ namespace Cracker.Base.Injection
     {
         public static IServiceProvider Build(Config config) =>
             new ServiceCollection()
+                .RegisterAppDirectory()
                 .RegisterConfig(config)
                 .RegisterLogging()
                 .RegisterKrakerApi(config)

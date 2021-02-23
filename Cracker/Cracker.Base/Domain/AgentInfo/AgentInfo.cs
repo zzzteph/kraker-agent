@@ -4,27 +4,19 @@ namespace Cracker.Base.Model
 {
     public record AgentInfo
     {
-        public AgentInfo(string ip,
-            string hostName,
-            string os,
-            string hashcatVersion,
-            string hw) =>
-            (Ip, HostName, OperationalSystem, HashcatVersion, HardwareInfo) =
-            (ip, hostName, os, hashcatVersion, hw);
-        
         [JsonPropertyName("ip")] 
-        public string Ip { get; init; }
+        public string Ip { get; set; }
 
         [JsonPropertyName("hostname")]
-        public string HostName { get; init; }
+        public string HostName { get; set; }
 
         [JsonPropertyName("os")] 
-        public string OperationalSystem { get; init; }
+        public string OperationalSystem { get; set; }
 
         [JsonPropertyName("hashcat")]
-        public string HashcatVersion { get; init; }
+        public string HashcatVersion { get; set; }
 
         [JsonPropertyName("hw")] 
-        public string HardwareInfo { get; init; }
+        public string HardwareInfo { get; set; }
     }
 }

@@ -26,10 +26,15 @@ namespace Cracker.Base.Domain.AgentInfo
         private readonly string _agentInfoFilePath;
         private readonly ILogger _logger;
         private readonly HashCatSettings _settings;
+        private readonly IWorkingDirectoryProvider _workingDirectoryProvider;
 
-        public AgentInfoManager(ILogger logger, Config config, AppFolder appFolder)
+        public AgentInfoManager(ILogger logger, 
+            Config config,
+            AppFolder appFolder, 
+            IWorkingDirectoryProvider workingDirectoryProvider)
         {
             _logger = logger;
+            _workingDirectoryProvider = workingDirectoryProvider;
             _agentInfoFilePath = Path.Combine(appFolder.Value, ArtefactsFolder, AgentInfoFile);
             _settings = config.HashCat;
         }
@@ -73,7 +78,9 @@ namespace Cracker.Base.Domain.AgentInfo
         {
             var hostName = Dns.GetHostName();
 
-            var hw = new HashCatCommandExecuter(PrepareJobResult.FromArguments("-I"), _settings, _logger)
+            var workingDirectory = _workingDirectoryProvider.Get();
+
+            var hw = new HashCatCommandExecuter(PrepareJobResult.FromArguments("-I"), _settings, _logger, workingDirectory)
                 .Execute(new CancellationToken(), true).Result.Output;
 
             var ip = Dns.GetHostAddresses(hostName)
@@ -81,13 +88,19 @@ namespace Cracker.Base.Domain.AgentInfo
                 ?.ToString();
 
             var hashcatVersion =
-                await new HashCatCommandExecuter(PrepareJobResult.FromArguments("-V"), _settings, _logger)
+                await new HashCatCommandExecuter(PrepareJobResult.FromArguments("-V"), _settings, _logger, workingDirectory)
                     .Execute(new CancellationToken());
 
             var os = Environment.OSVersion.VersionString;
 
-
-            return new Model.AgentInfo(ip, hostName, os, hashcatVersion.Output[0], string.Join(Environment.NewLine, hw));
+            return new Model.AgentInfo
+                {
+                    Ip = ip,
+                    HostName = hostName,
+                    OperationalSystem = os,
+                    HashcatVersion = hashcatVersion.Output[0],
+                    HardwareInfo = string.Join(Environment.NewLine, hw)
+                };
         }
     }
 }

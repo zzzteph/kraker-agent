@@ -13,11 +13,11 @@ namespace Cracker.Base.Settings
     public class WorkedFoldersManager : IWorkedFoldersManager
     {
         private readonly ILogger _logger;
-        private readonly string currentDirectory;
+        private readonly string _appDirectory;
 
         public WorkedFoldersManager(ILogger logger, AppFolder appFolder)
         {
-            currentDirectory = appFolder.Value;
+            _appDirectory = appFolder.Value;
             _logger = logger;
         }
 
@@ -25,9 +25,9 @@ namespace Cracker.Base.Settings
         {
             var workedDirectories = new WorkedFolders
             {
-                WordlistPath = Path.Combine(currentDirectory, ArtefactsFolder, WordlistsFolder),
-                RulesPath = Path.Combine(currentDirectory, RulesFolder),
-                TempFolderPath = Path.Combine(currentDirectory, TempFolder)
+                WordlistPath = Path.Combine(_appDirectory, WordlistsFolder),
+                RulesPath = Path.Combine(_appDirectory, RulesFolder),
+                TempFolderPath = Path.Combine(_appDirectory,ArtefactsFolder, TempFolder)
             };
 
             if (!Directory.Exists(workedDirectories.WordlistPath))

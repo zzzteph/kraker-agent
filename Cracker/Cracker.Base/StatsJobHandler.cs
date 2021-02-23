@@ -23,7 +23,7 @@ namespace Cracker.Base
         {
             _krakerApi = krakerApi;
             _speedCalculator = speedCalculator;
-            _agentId = agentIdManager.GetCurrent().Value;
+            _agentId = agentIdManager.GetCurrent().Id;
         }
 
         public PrepareJobResult Prepare(AbstractJob job) 

@@ -1,6 +1,6 @@
 ﻿using System;
-using System.IO;
 using System.Threading.Tasks;
+using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Domain.Inventory;
 using Cracker.Base.Model;
 using Cracker.Base.Services;
@@ -18,6 +18,7 @@ namespace Cracker.Base
         private readonly IConfigValidator _configValidator;
         private readonly IAgentRegistrationManager _registrationManager;
         private readonly IInventoryManager inventoryManager;
+        private readonly IWorkingDirectoryProvider _workingDirectoryProvider;
         
         private readonly IKrakerApi _krakerApi;
         private readonly Config _config;
@@ -26,26 +27,27 @@ namespace Cracker.Base
             IConfigValidator configValidator,
             Config config,
             IAgentRegistrationManager registrationManager,
-            IInventoryManager inventoryManager)
+            IInventoryManager inventoryManager,
+            IWorkingDirectoryProvider workingDirectoryProvider)
         {
             _krakerApi = krakerApi;
             _configValidator = configValidator;
             _config = config;
             _registrationManager = registrationManager;
             this.inventoryManager = inventoryManager;
+            _workingDirectoryProvider = workingDirectoryProvider;
         }
 
         public async Task<OperationResult<(AgentId agentId, AgentInfo agentInfo, Inventory inventory)>> Start()
         {
+            Environment.CurrentDirectory = _workingDirectoryProvider.Get();
+            
             var configResult = _configValidator.Validate();
             if (!configResult.IsSuccess)
                 return OperationResult<(AgentId, AgentInfo, Inventory)>.Fail(configResult.Error);
 
             var (agentId, agentInfo) = await _registrationManager.Register();
             
-            Environment.CurrentDirectory = Path.GetDirectoryName(_config.HashCat.Path);
-
-
             var inventoryResult = inventoryManager.Initialize();
 
             if (!inventoryResult.IsSuccess)

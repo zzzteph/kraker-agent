@@ -29,7 +29,7 @@ namespace Cracker.Base
             _tempFileManager = tempFileManager;
             _argumentBuilder = argumentBuilder;
             _workedFolders = workedFoldersProvider.Get();
-            _agentId = agentIdManager.GetCurrent().Value;
+            _agentId = agentIdManager.GetCurrent().Id;
         }
 
         public PrepareJobResult Prepare(AbstractJob job)

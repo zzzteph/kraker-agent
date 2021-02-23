@@ -8,7 +8,7 @@ namespace Cracker.Base.Domain.AgentId
     {
         Model.AgentId GetCurrent();
         Model.AgentId GetFromFile();
-        void Save(string agentId);
+        void Save(Model.AgentId agentId);
     }
 
     public class AgentIdManager : IAgentIdManager
@@ -38,13 +38,13 @@ namespace Cracker.Base.Domain.AgentId
         }
             
 
-        public void Save(string agentId)
+        public void Save(Model.AgentId agentId)
         {
-            if (agentId is null or "")
+            if (agentId is null || agentId.Id is null)
                 File.Delete(_agentIdFilePath);
             
-            File.WriteAllText(_agentIdFilePath,agentId);
-            _current = new Model.AgentId(agentId);
+            File.WriteAllText(_agentIdFilePath,agentId.Id);
+            _current = new Model.AgentId(agentId.Id);
         }
     }
 }

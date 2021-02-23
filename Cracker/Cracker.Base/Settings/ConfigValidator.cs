@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
 using Serilog;
 
@@ -13,12 +14,15 @@ namespace Cracker.Base.Settings
     {
         private readonly Config _config;
         private readonly ILogger _logger;
+        private readonly IWorkingDirectoryProvider _workingDirectoryProvider;
 
-        public ConfigValidator(Config config, ILogger logger)
-
+        public ConfigValidator(Config config,
+            ILogger logger, 
+            IWorkingDirectoryProvider workingDirectoryProvider)
         {
             _config = config;
             _logger = logger;
+            _workingDirectoryProvider = workingDirectoryProvider;
         }
 
         public OperationResult Validate()
@@ -31,9 +35,10 @@ namespace Cracker.Base.Settings
                 allGood = false;
             }
 
-            if (!File.Exists(_config.HashCat.Path))
+            var hashcatPath = _workingDirectoryProvider.GetHashCatPath();
+            if (!File.Exists(hashcatPath))
             {
-                _logger.Error($"Naven't find Hashcat by the path {_config.HashCat.Path}");
+                _logger.Error($"Naven't found Hashcat by the path {hashcatPath}");
                 allGood = false;
             }
 

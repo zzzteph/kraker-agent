@@ -37,9 +37,9 @@ namespace Cracker.Base.Settings
             if (!registrationIsNeeded)
                 return (_agentIdManager.GetCurrent(), agentInfo);
             
-            var agentIdValue = await _krakerApi.RegisterAgent();
+            var agentId = await _krakerApi.RegisterAgent();
             
-            _agentIdManager.Save(agentIdValue);
+            _agentIdManager.Save(agentId);
             
             _agentInfoManager.Save(agentInfo);
 
@@ -53,7 +53,7 @@ namespace Cracker.Base.Settings
             
             var actualAgentInfo = _agentInfoProvider.Get();
             
-            if (agentId.Value is null or "")
+            if (agentId.Id is null or "")
                 return (true, actualAgentInfo);
 
             var oldAgentInfoOR = _agentInfoManager.GetFromFile();

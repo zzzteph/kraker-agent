@@ -3,12 +3,9 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Cracker.Base.Domain.AgentId;
-using Cracker.Base.Domain.AgentInfo;
 using Cracker.Base.Domain.HashCat;
-using Cracker.Base.Model;
 using Cracker.Base.Services;
 using Cracker.Base.Settings;
-using Refit;
 using Serilog;
 
 namespace Cracker.Base
@@ -29,6 +26,7 @@ namespace Cracker.Base
         private readonly IJobHandlerProvider _jobHandlerProvider;
         private readonly Config _config;
         private readonly ILogger _logger;
+        private readonly string _workingDirectory;
         
         private CancellationTokenSource? cts;
         private Task<ExecutionResult>? hashcatTask;
@@ -38,14 +36,17 @@ namespace Cracker.Base
             IAgentIdManager _agentIdManager,
             IKrakerApi krakerApi,
             Config config,
-            ILogger logger)
+            ILogger logger,
+            IWorkingDirectoryProvider workingDirectoryProvider)
         {
             _switch = new FiniteStateMachine(WaitJob);
             _jobHandlerProvider = jobHandlerProvider;
             _krakerApi = krakerApi;
             _config = config;
             _logger = logger;
-            _agentId = _agentIdManager.GetCurrent().Value;
+            _workingDirectory = workingDirectoryProvider.Get();
+            _agentId = _agentIdManager.GetCurrent().Id;
+            
         }
 
         public async Task WaitJob()
@@ -66,7 +67,7 @@ namespace Cracker.Base
                 cts = new CancellationTokenSource();
                 var hashcatPath = _config.HashCat.Path;
                 Environment.CurrentDirectory = Path.GetDirectoryName(hashcatPath);
-                hashcatTask = new HashCatCommandExecuter(preparationResult, _config.HashCat, _logger)
+                hashcatTask = new HashCatCommandExecuter(preparationResult, _config.HashCat, _logger, _workingDirectory)
                     .Execute(cts.Token);
 
                 _switch.SetStateAction(ProcessJob);

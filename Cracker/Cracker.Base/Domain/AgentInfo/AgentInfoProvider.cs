@@ -1,3 +1,5 @@
+using System;
+
 namespace Cracker.Base.Domain.AgentInfo
 {
     public interface IAgentInfoProvider
@@ -7,13 +9,13 @@ namespace Cracker.Base.Domain.AgentInfo
 
     public class AgentInfoProvider : IAgentInfoProvider
     {
-        private readonly Model.AgentInfo _agentInfo;
+        private readonly Lazy<Model.AgentInfo> _agentInfo;
 
         public AgentInfoProvider(IAgentInfoManager manager)
         {
-            _agentInfo = manager.Build().Result;
+            _agentInfo = new Lazy<Model.AgentInfo>(()=>manager.Build().Result);
         }
         
-        public Model.AgentInfo Get() => _agentInfo;
+        public Model.AgentInfo Get() => _agentInfo.Value;
     }
 }
