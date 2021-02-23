@@ -1,24 +1,19 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Cracker.Base
 {
     public class FiniteStateMachine
     {
-        private Action activeStateAction;
+        private Func<Task> activeStateAction;
 
-        public FiniteStateMachine(Action initialAction)
+        public FiniteStateMachine(Func<Task> initialAction)
         {
             activeStateAction = initialAction;
         }
 
-        public void SetStateAction(Action newAction)
-        {
-            activeStateAction = newAction;
-        }
+        public void SetStateAction(Func<Task> newAction) => activeStateAction = newAction;
 
-        public void RunAction()
-        {
-            activeStateAction?.Invoke();
-        }
+        public Task RunAction() => activeStateAction.Invoke();
     }
 }

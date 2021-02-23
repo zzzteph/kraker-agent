@@ -20,9 +20,6 @@ namespace Cracker.Base.Services
         [Post("api/agents/{agent_id}/status")]
         Task<WorkStatus> SendAgentStatus([AliasAs("agent_id")][Query] string agentId);
 
-        //[Post("api/agents/{agent_id}/speedstat")]
-        //Task<string> SendSpeedstat([AliasAs("agent_id")][Query] string agentId, [Body] SpeedStat[] speedStat);
-
         [Get("api/works")]
         Task<AbstractJob> GetJob([AliasAs("agent_id")][Query] string agentId);
 
@@ -31,9 +28,6 @@ namespace Cracker.Base.Services
             [AliasAs("hashtype_id")] long hashTypeId,
             [Body] SpeedStatResponse speedStat);
 
-        [Get("api/hashlists/{hashlist_id}/content")]
-        Task<ContentHolder> GetHashListContent([AliasAs("agent_id")][Query] string agentId,
-            [AliasAs("hashlist_id")] long hashListId);
         
         [Post("api/hashlists/{hashlist_id}")]
         Task SendHashList([AliasAs("agent_id")][Query] string agentId,
@@ -41,10 +35,6 @@ namespace Cracker.Base.Services
             [Body] HashListResponse hashListResponse);
         
         
-        [Get("api/pot/{hashlist_id}/content")]
-        Task<ContentHolder> GetPotFileContent([AliasAs("agent_id")][Query] string agentId,
-            [AliasAs("hashlist_id")] long hashListId);
-
         [Post("api/templates/{template_id}")]
         Task<AbstractJob> SendTemplate([AliasAs("agent_id")][Query] string agentId,
             [AliasAs("template_id")] long templateId,

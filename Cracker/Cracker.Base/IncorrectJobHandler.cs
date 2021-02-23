@@ -1,5 +1,5 @@
 ﻿using System;
-using Cracker.Base.HashCat;
+using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
 using Cracker.Base.Model.Jobs;
 

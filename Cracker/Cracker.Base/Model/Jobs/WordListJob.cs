@@ -8,5 +8,7 @@ namespace Cracker.Base.Model
         long Skip,
         long Limit,
         string Wordlist,
-        string Rule) : AbstractJob(JobType.WordList);
+        string Rule,
+        string Content,
+        string PotContent) : AbstractJob(JobType.WordList);
 }

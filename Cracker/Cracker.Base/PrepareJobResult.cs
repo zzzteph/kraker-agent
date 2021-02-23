@@ -1,4 +1,4 @@
-﻿using Cracker.Base.HashCat;
+﻿using Cracker.Base.Model;
 using Cracker.Base.Model.Jobs;
 
 namespace Cracker.Base

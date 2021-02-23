@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Linq;
-using Cracker.Base.HashCat;
+using Cracker.Base.Domain.AgentId;
+using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
 using Cracker.Base.Model.Jobs;
 using Cracker.Base.Model.Responses;
 using Cracker.Base.Services;
+using Cracker.Base.Settings;
 
 namespace Cracker.Base
 {
@@ -13,36 +15,32 @@ namespace Cracker.Base
 
     public class TemplateJobHandler : ITemplateJobHandler
     {
-        private readonly Settings.Settings _settings;
         private readonly IKrakerApi _krakerApi;
+        private readonly WorkedFolders _workedFolders;
+        private readonly IArgumentsBuilder _argumentsBuilder;
+        private readonly string _agentId;
 
-        public TemplateJobHandler(Settings.Settings settings,
-            IKrakerApi krakerApi)
+        public TemplateJobHandler(
+            IKrakerApi krakerApi,
+            IWorkedFoldersProvider workedFoldersProvider,
+            IArgumentsBuilder argumentsBuilder,
+            IAgentIdManager agentIdManager)
         {
-            _settings = settings;
             _krakerApi = krakerApi;
+            _argumentsBuilder = argumentsBuilder;
+            _workedFolders = workedFoldersProvider.Get();
+            _agentId = agentIdManager.GetCurrent().Value;
         }
 
-        public PrepareJobResult Prepare(AbstractJob job)
-        {
-            try
-            {
-                var arguments = new ArgumentsBuilder(_settings.WorkedDirectories).BuildArguments(job, null);
-
-                return PrepareJobResult.FromArguments(arguments);
-            }
-            catch (Exception e)
-            {
-                return PrepareJobResult.FromError($"Can't generate arguments for the job:{job}, Error: {e}");
-            }
-        }
+        public PrepareJobResult Prepare(AbstractJob job) 
+            => PrepareJobResult.FromArguments(_argumentsBuilder.Build(job, null));
 
         public void Clear(ExecutionResult executionResult)
         {
-            var keyspace = executionResult?.Output.LastOrDefault(o => o != null);
+            var keyspace = executionResult.Output.LastOrDefault(o => o != null);
             var templateId = (executionResult.Job as TemplateJob).TemplateId;
 
-            _krakerApi.SendTemplate(_settings.Config.AgentId,
+            _krakerApi.SendTemplate(_agentId,
                 templateId,
                 new TemplateResponse(long.Parse(keyspace), null)
             );

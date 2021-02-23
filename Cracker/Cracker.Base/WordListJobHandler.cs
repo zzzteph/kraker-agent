@@ -1,11 +1,14 @@
 using System;
 using System.IO;
 using System.Linq;
-using Cracker.Base.HashCat;
-using Cracker.Base.Logging;
+using Cracker.Base.Domain.AgentId;
+using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
 using Cracker.Base.Model.Jobs;
+using Cracker.Base.Model.Responses;
 using Cracker.Base.Services;
+using Cracker.Base.Settings;
+using Serilog;
 
 namespace Cracker.Base
 {
@@ -15,14 +18,28 @@ namespace Cracker.Base
 
     public class WordListJobHandler : IWordListJobHandler
     {
-        private readonly Settings.Settings _settings;
         private readonly IKrakerApi _krakerApi;
-
+        private readonly ITempFileManager _tempFileManager;
+        private readonly WorkedFolders _workedFolders;
+        private readonly IArgumentsBuilder _argumentsBuilder;
+        private readonly string _agentId;
+        private readonly ISpeedCalculator _speedCalculator;
+        private readonly ILogger _logger;
         
-        public WordListJobHandler(Settings.Settings settings, IKrakerApi krakerApi)
+        public WordListJobHandler( IKrakerApi krakerApi,
+            ITempFileManager tempFileManager,
+            IWorkedFoldersProvider workedFoldersProvider,
+            IArgumentsBuilder argumentsBuilder,
+            IAgentIdManager agentIdManager,
+            ISpeedCalculator speedCalculator, ILogger logger)
         {
-            _settings = settings;
             _krakerApi = krakerApi;
+            _tempFileManager = tempFileManager;
+            _argumentsBuilder = argumentsBuilder;
+            _speedCalculator = speedCalculator;
+            _logger = logger;
+            _agentId = agentIdManager.GetCurrent().Value;
+            _workedFolders = workedFoldersProvider.Get();
         }
 
         public PrepareJobResult Prepare(AbstractJob job)
@@ -31,29 +48,16 @@ namespace Cracker.Base
             if (wordlistJob?.JobId == null)
                 return PrepareJobResult.FromError("Get a wordlist job with id = null");
 
-            var paths = _settings.WorkedDirectories.TempDirectoryPath.BuildTempFilePaths();
-            var hashfile = _krakerApi.GetHashListContent(_settings.Config.AgentId, wordlistJob.HashListId).Result;
-            if (hashfile.Content is null or "")
+            var paths = _tempFileManager.BuildTempFilePaths(_workedFolders.TempFolderPath);
+            
+            if (wordlistJob.Content is null or "")
                 return PrepareJobResult.FromError(
                     $"A hashfile is empty: HashId ={wordlistJob.HashListId}, JobId={wordlistJob.JobId}");
 
-            string arguments;
-            try
-            {
-                arguments = new ArgumentsBuilder(_settings.WorkedDirectories).BuildArguments(wordlistJob, paths);
-            }
-            catch (Exception e)
-            {
-                return PrepareJobResult.FromError(
-                    $"Cann't build arguments for a job. JobId:{wordlistJob.JobId}, Error: {e}");
-            }
-
-
-            File.WriteAllBytes(paths.HashFile, Convert.FromBase64String(hashfile.Content));
-
-            var potFile = _krakerApi.GetPotFileContent(_settings.Config.AgentId, wordlistJob.HashListId).Result;
-
-            File.WriteAllBytes(paths.PotFile, Convert.FromBase64String(potFile?.Content ?? string.Empty));
+            var arguments = _argumentsBuilder.Build(job, paths);
+            
+            File.WriteAllBytes(paths.HashFile, Convert.FromBase64String(wordlistJob.Content));
+            File.WriteAllBytes(paths.PotFile, Convert.FromBase64String(wordlistJob.PotContent??null));
             
             return new PrepareJobResult(job, arguments, paths, true, null);
         }
@@ -61,12 +65,13 @@ namespace Cracker.Base
         public void Clear(ExecutionResult executionResult)
         {
             var paths = executionResult.Paths;
-            paths.HashFile.SoftDelete("hashfile");
+            _tempFileManager.SoftDelete(paths.HashFile, Constants.HashFile);
 
+            var jobId = (executionResult.Job as WordListJob).JobId;
             if (!executionResult.IsSuccessful)
             {
-                paths.OutputFile.SoftDelete("outfile");
-                paths.PotFile.SoftDelete("potfile");
+                _krakerApi.SendJob(_agentId, jobId, JobResponse.FromError(jobId, executionResult.ErrorMessage));
+                DeleteOutputAndPotfile(paths);
                 return;
             }
 
@@ -74,27 +79,31 @@ namespace Cracker.Base
                 e.Contains("No hashes loaded") || e.Contains("Unhandled Exception"));
             if (err != null)
             {
-                //_krakerApi.SendJobEnd(new {error = err}, _job.JobId).ConfigureAwait(false);
-                paths.OutputFile.SoftDelete("outfile");
-                paths.PotFile.SoftDelete("potfile");
+                _krakerApi.SendJob(_agentId, jobId, JobResponse.FromError(jobId, err));
+                DeleteOutputAndPotfile(paths);
                 return;
             }
 
-            var speed = SpeedCalculator.CalculateFact(executionResult.Output);
+            var speed = _speedCalculator.CalculateFact(executionResult.Output);
             if (File.Exists(paths.OutputFile))
             {
                 var outfile = Convert.ToBase64String(File.ReadAllBytes(paths.OutputFile));
                 var potfile = Convert.ToBase64String(File.ReadAllBytes(paths.PotFile));
 
-                //_krakerApi.SendJobEnd(new {outfile, potfile, speed}, _job.JobId).ConfigureAwait(false);
-                paths.OutputFile.SoftDelete("outfile");
-                paths.PotFile.SoftDelete("potfile");
+                _krakerApi.SendJob(_agentId, jobId, new (jobId, outfile, potfile, speed, null));
+                DeleteOutputAndPotfile(paths);
             }
             else
             {
-                Log.Message("An output file doesn't exist");
-                //_krakerApi.SendJobEnd(new {potfile = string.Empty, speed}, _job.JobId).ConfigureAwait(false);
+                _logger.Information("An output file doesn't exist");
+                _krakerApi.SendJob(_agentId, jobId, new (jobId, null, string.Empty, speed, null));
             }
+        }
+        
+        private void DeleteOutputAndPotfile(TempFilePaths paths)
+        {
+            _tempFileManager.SoftDelete(paths.OutputFile, Constants.Output);
+            _tempFileManager.SoftDelete(paths.PotFile, Constants.PotFile);
         }
     }
 }

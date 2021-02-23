@@ -1,25 +1,41 @@
 using System;
 using System.IO;
 using System.Linq;
-using Cracker.Base.HashCat;
-using Cracker.Base.Logging;
+using Cracker.Base.Domain.AgentId;
+using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
 using Cracker.Base.Model.Jobs;
+using Cracker.Base.Model.Responses;
 using Cracker.Base.Services;
+using Cracker.Base.Settings;
+using Serilog;
 
 namespace Cracker.Base
 {
     public interface IBruteforceJobHandler:IJobHandler{}
     public class BruteforceJobHandler:IBruteforceJobHandler
     {
-        private readonly Settings.Settings _settings;
         private readonly IKrakerApi _krakerApi;
+        private readonly WorkedFolders _workedFolders;
+        private readonly ITempFileManager _tempFileManager;
+        private readonly IArgumentsBuilder _argumentsBuilder;
+        private readonly string _agentId;
+        private readonly ISpeedCalculator _speedCalculator;
+        private readonly ILogger _logger;
 
-        public BruteforceJobHandler(Settings.Settings settings,
-            IKrakerApi krakerApi)
+        public BruteforceJobHandler(
+            IKrakerApi krakerApi,
+            IWorkedFoldersProvider workedFoldersProvider,
+            ITempFileManager tempFileManager, 
+            IAgentIdManager agentIdManager, IArgumentsBuilder argumentsBuilder, ISpeedCalculator speedCalculator, ILogger logger)
         {
-            _settings = settings;
             _krakerApi = krakerApi;
+            _tempFileManager = tempFileManager;
+            _argumentsBuilder = argumentsBuilder;
+            _speedCalculator = speedCalculator;
+            _logger = logger;
+            _agentId = agentIdManager.GetCurrent().Value;
+            _workedFolders = workedFoldersProvider.Get();
         }
 
         public PrepareJobResult Prepare(AbstractJob job)
@@ -28,32 +44,17 @@ namespace Cracker.Base
             if (bruteforceJob?.JobId == null)
                 return PrepareJobResult.FromError("Got a job with id = null");
 
-            var paths = _settings.WorkedDirectories.TempDirectoryPath.BuildTempFilePaths();
-            var hashfile = _krakerApi.GetHashListContent(_settings.Config.AgentId, bruteforceJob.HashlistId).Result;
-            if (string.IsNullOrEmpty(hashfile.Content))
+            var paths = _tempFileManager.BuildTempFilePaths(_workedFolders.TempFolderPath);
+            
+            if (string.IsNullOrEmpty(bruteforceJob.Content))
                 return PrepareJobResult
                     .FromError(
                         $"Got empty content for a bruteforce job: HashId ={bruteforceJob.HashlistId}, JobId={bruteforceJob.JobId}");
 
-            string arguments;
-            try
-            {
-                arguments = new ArgumentsBuilder(_settings.WorkedDirectories).BuildArguments(job, paths);
-            }
-            catch (Exception e)
-            {
-                return PrepareJobResult
-                    .FromError(
-                        $"Can't build arguments for a bruteforce job JobId:{bruteforceJob.JobId}, Error: {e}");
-            }
-
-
-            File.WriteAllBytes(paths.HashFile, Convert.FromBase64String(hashfile.Content));
-
-            var potFile = _krakerApi.GetPotFileContent(_settings.Config.AgentId, bruteforceJob.HashlistId).Result;
-
-            File.WriteAllBytes(paths.PotFile, Convert.FromBase64String(potFile?.Content ?? string.Empty));
-
+            var arguments = _argumentsBuilder.Build(job, paths);
+            
+            File.WriteAllBytes(paths.HashFile, Convert.FromBase64String(bruteforceJob.Content));
+            File.WriteAllBytes(paths.PotFile, Convert.FromBase64String(bruteforceJob.PotContent ?? string.Empty));
 
             return new PrepareJobResult(job, arguments, paths, true, null);
         }
@@ -62,40 +63,48 @@ namespace Cracker.Base
         public void Clear(ExecutionResult executionResult)
         {
             var paths = executionResult.Paths;
-            paths.HashFile.SoftDelete("hashfile");
-
+            _tempFileManager.SoftDelete(paths.HashFile, Constants.HashFile);
+            
+            var jobId = (executionResult.Job as BruteforceJob).JobId;
             if (!executionResult.IsSuccessful)
             {
-                paths.OutputFile.SoftDelete("outfile");
-                paths.PotFile.SoftDelete("potfile");
+                _krakerApi.SendJob(_agentId, jobId,
+                    JobResponse.FromError(jobId, executionResult.ErrorMessage));
+                
+                DeleteOutputAndPotfile(paths);
                 return;
             }
 
             var err = executionResult.Errors.FirstOrDefault(e =>
                 e.Contains("No hashes loaded") || e.Contains("Unhandled Exception"));
+
             if (err != null)
             {
-                //_krakerApi.SendJobEnd(new {error = err}, job.JobId).ConfigureAwait(false);
-                paths.OutputFile.SoftDelete("outfile");
-                paths.PotFile.SoftDelete("potfile");
+                _krakerApi.SendJob(_agentId, jobId, JobResponse.FromError(jobId, err));
+                DeleteOutputAndPotfile(paths);
                 return;
             }
 
-            var speed = SpeedCalculator.CalculateFact(executionResult.Output);
+            var speed = _speedCalculator.CalculateFact(executionResult.Output);
             if (File.Exists(paths.OutputFile))
             {
                 var outfile = Convert.ToBase64String(File.ReadAllBytes(paths.OutputFile));
                 var potfile = Convert.ToBase64String(File.ReadAllBytes(paths.PotFile));
 
-                //_krakerApi.SendJobEnd(new {outfile, potfile, speed}, job.JobId).ConfigureAwait(false);
-                paths.OutputFile.SoftDelete("outfile");
-                paths.PotFile.SoftDelete("potfile");
+                _krakerApi.SendJob(_agentId, jobId,new (jobId, outfile, potfile, speed, null));
+                DeleteOutputAndPotfile(paths);
             }
             else
             {
-                Log.Message("Output file doesn't exist");
-                //_krakerApi.SendJobEnd(new {potfile = string.Empty, speed}, job.JobId).ConfigureAwait(false);
+                _logger.Information("Output file doesn't exist");
+                _krakerApi.SendJob(_agentId, jobId,new(jobId, null, String.Empty, speed, null));
             }
+        }
+
+        private void DeleteOutputAndPotfile(TempFilePaths paths)
+        {
+            _tempFileManager.SoftDelete(paths.OutputFile, Constants.Output);
+            _tempFileManager.SoftDelete(paths.PotFile, Constants.PotFile);
         }
     }
 }

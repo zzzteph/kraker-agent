@@ -3,9 +3,14 @@ using System.Linq;
 using System.Security.Cryptography;
 using Cracker.Base.Model;
 
-namespace Cracker.Base.Settings
+namespace Cracker.Base.Domain.Inventory
 {
-    public class FileDescriptionBuilder
+    public interface IFileDescriptionBuilder
+    {
+        FileDescription Build(string filePath);
+    }
+
+    public class FileDescriptionBuilder : IFileDescriptionBuilder
     {
         public FileDescription Build(string filePath)
         {

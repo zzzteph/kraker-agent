@@ -11,5 +11,7 @@ namespace Cracker.Base.Model
         string Charset1,
         string Charset2,
         string Charset3,
-        string Charset4) : AbstractJob(JobType.Bruteforce);
+        string Charset4,
+        string Content,
+        string PotContent) : AbstractJob(JobType.Bruteforce);
 }

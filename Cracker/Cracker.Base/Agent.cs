@@ -2,37 +2,57 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Cracker.Base.HashCat;
-using Cracker.Base.Logging;
+using Cracker.Base.Domain.AgentId;
+using Cracker.Base.Domain.AgentInfo;
+using Cracker.Base.Domain.HashCat;
+using Cracker.Base.Model;
 using Cracker.Base.Services;
+using Cracker.Base.Settings;
 using Refit;
+using Serilog;
 
 namespace Cracker.Base
 {
-    public class Agent
+    public interface IAgent
     {
+        Task WaitJob();
+        Task DoNothing();
+        Task ProcessJob();
+        Task Work();
+    }
+
+    public class Agent : IAgent
+    {
+        private readonly string _agentId;
         private readonly IKrakerApi _krakerApi;
-        private readonly Settings.Settings _settings;
         private readonly FiniteStateMachine _switch;
+        private readonly IJobHandlerProvider _jobHandlerProvider;
+        private readonly Config _config;
+        private readonly ILogger _logger;
+        
         private CancellationTokenSource? cts;
         private Task<ExecutionResult>? hashcatTask;
         private IJobHandler? jobHandler;
-        private readonly IJobHandlerProvider _jobHandlerProvider;
 
-        public Agent(Settings.Settings settings, 
-            IJobHandlerProvider jobHandlerProvider)
+        public Agent(IJobHandlerProvider jobHandlerProvider,
+            IAgentIdManager _agentIdManager,
+            IKrakerApi krakerApi,
+            Config config,
+            ILogger logger)
         {
             _switch = new FiniteStateMachine(WaitJob);
-            _settings = settings;
             _jobHandlerProvider = jobHandlerProvider;
-            _krakerApi = RestService.For<IKrakerApi>("https://kraker.weakpass.com");
+            _krakerApi = krakerApi;
+            _config = config;
+            _logger = logger;
+            _agentId = _agentIdManager.GetCurrent().Value;
         }
 
-        public void WaitJob()
+        public async Task WaitJob()
         {
             _switch.SetStateAction(DoNothing);
 
-            var job = _krakerApi.GetJob(_settings.Config.AgentId).Result;
+            var job = await _krakerApi.GetJob(_agentId);
             if (job.Type == null)
             {
                 _switch.SetStateAction(WaitJob);
@@ -44,35 +64,33 @@ namespace Cracker.Base
             if (preparationResult.IsReadyForExecution)
             {
                 cts = new CancellationTokenSource();
-                var hashcatPath = _settings.Config.HashCat.Path;
+                var hashcatPath = _config.HashCat.Path;
                 Environment.CurrentDirectory = Path.GetDirectoryName(hashcatPath);
-                hashcatTask = new HashCatCommandExecuter(preparationResult, _settings.Config.HashCat, _krakerApi)
+                hashcatTask = new HashCatCommandExecuter(preparationResult, _config.HashCat, _logger)
                     .Execute(cts.Token);
 
                 _switch.SetStateAction(ProcessJob);
                 return;
             }
 
-            Log.Message($"Задача от сервера не валидна: {preparationResult.Error}");
+            _logger.Information($"Got an invalid task: {preparationResult.Error}");
             jobHandler = null;
             hashcatTask = null;
             _switch.SetStateAction(WaitJob);
         }
 
-        public void DoNothing()
-        {
-        }
+        public Task DoNothing() =>Task.CompletedTask;
 
-        public void ProcessJob()
+        public async Task ProcessJob()
         {
             _switch.SetStateAction(DoNothing);
 
             if (!hashcatTask.IsCompleted)
             {
-                var heartbeat = _krakerApi.SendAgentStatus(_settings.Config.AgentId).Result;
+                var heartbeat = _krakerApi.SendAgentStatus(_config.AgentId).Result;
                 if (heartbeat.Status == "cancel")
                 {
-                    Log.Message("The job is cancel");
+                    _logger.Information("The job is cancel");
                     cts.Cancel();
                 }
 
@@ -87,9 +105,9 @@ namespace Cracker.Base
             _switch.SetStateAction(WaitJob);
         }
 
-        public void Work()
+        public async Task Work()
         {
-            _switch.RunAction();
+            await _switch.RunAction();
         }
     }
 }

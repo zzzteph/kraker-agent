@@ -1,52 +1,52 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Cracker.Base.HashCat;
+using Cracker.Base.Domain.AgentId;
+using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
 using Cracker.Base.Model.Jobs;
 using Cracker.Base.Model.Responses;
 using Cracker.Base.Services;
+using Cracker.Base.Settings;
 
 namespace Cracker.Base
 {
     public class HashListJobHandler : IJobHandler
     {
         private readonly IKrakerApi _krakerApi;
-        private readonly Settings.Settings _settings;
-
-        public HashListJobHandler(Settings.Settings settings,
-            IKrakerApi krakerApi)
+        private readonly string _agentId;
+        private readonly WorkedFolders _workedFolders;
+        private readonly ITempFileManager _tempFileManager;
+        private readonly IArgumentsBuilder _argumentBuilder;
+        public HashListJobHandler(
+            IKrakerApi krakerApi,
+            IAgentIdManager agentIdManager,
+            IWorkedFoldersProvider workedFoldersProvider,
+            ITempFileManager tempFileManager, 
+            IArgumentsBuilder argumentBuilder)
         {
-            _settings = settings;
             _krakerApi = krakerApi;
+            _tempFileManager = tempFileManager;
+            _argumentBuilder = argumentBuilder;
+            _workedFolders = workedFoldersProvider.Get();
+            _agentId = agentIdManager.GetCurrent().Value;
         }
 
         public PrepareJobResult Prepare(AbstractJob job)
         {
             var hashListJob = job as HashListJob;
-            var agentId = _settings.Config.AgentId;
             if (hashListJob?.HashListId == null)
                 return PrepareJobResult.FromError($"Can't get HashListId in the job {job}");
 
-            var hashfile = _krakerApi.GetHashListContent(agentId, hashListJob.HashListId).Result;
-            if (hashfile?.Content is null or "")
+            if (hashListJob.Content is null or "")
                 return PrepareJobResult.FromError(
                     $"Empty content for the job {job}");
-            var paths = _settings.WorkedDirectories.TempDirectoryPath.BuildTempFilePaths();
-            File.WriteAllBytes(paths.HashFile, Convert.FromBase64String(hashfile.Content));
+            var paths = _tempFileManager.BuildTempFilePaths(_workedFolders.TempFolderPath);
+            File.WriteAllBytes(paths.HashFile, Convert.FromBase64String(hashListJob.Content));
             File.WriteAllText(paths.PotFile, string.Empty);
 
-            string arguments;
-            try
-            {
-                arguments = new ArgumentsBuilder(_settings.WorkedDirectories).BuildArguments(job, paths);
-            }
-            catch (Exception e)
-            {
-                return PrepareJobResult.FromError(
-                    $"Couldn't generate arguments for the job:{job}, Error: {e}");
-            }
-
+            var arguments = _argumentBuilder.Build(job, paths);
+            
             return new PrepareJobResult(job, arguments, paths, true, null);
         }
 
@@ -59,21 +59,21 @@ namespace Cracker.Base
 
             if (paths != null)
             {
-                paths.HashFile.SoftDelete("hashfile");
-                paths.PotFile.SoftDelete("potfile");
+                _tempFileManager.SoftDelete(paths.OutputFile, Constants.Output);
+                _tempFileManager.SoftDelete(paths.PotFile, Constants.PotFile);
             }
 
             if (error != null)
                 if (error.Contains("No hashes loaded"))
-                    _krakerApi.SendHashList(_settings.Config.AgentId,
+                    _krakerApi.SendHashList(_agentId,
                         (executionResult.Job as HashListJob).HashListId,
                         new HashListResponse(0, "No hashes loaded"));
                 else
-                    _krakerApi.SendHashList(_settings.Config.AgentId,
+                    _krakerApi.SendHashList(_agentId,
                         (executionResult.Job as HashListJob).HashListId,
                         new HashListResponse(0, error));
             else
-                _krakerApi.SendHashList(_settings.Config.AgentId,
+                _krakerApi.SendHashList(_agentId,
                     (executionResult.Job as HashListJob).HashListId,
                     new HashListResponse(executionResult.Output.Count, null));
         }

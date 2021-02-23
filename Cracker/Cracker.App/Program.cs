@@ -4,11 +4,14 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Cracker.Base;
+using Cracker.Base.Domain.Inventory;
 using Cracker.Base.Injection;
-using Cracker.Base.Logging;
+using Cracker.Base.Model;
 using Cracker.Base.Services;
 using Cracker.Base.Settings;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Cracker.App
 {
@@ -19,60 +22,69 @@ namespace Cracker.App
         private static Timer checkInventoryTimer;
         private static Timer agentTimer;
 
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
-            var container = ServiceProviderBuilder.Build();
-            var startResult = container.GetService<IStartup>().Start();
+            var configurationRoot = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .Build();
+
+            var config = configurationRoot.Get<Config>();
+            
+            var container = ServiceProviderBuilder.Build(config);
+            var logger = container.GetService<ILogger>();
+
+            var startResult = await container.GetService<IStartup>().Start();
             if (!startResult.IsSuccess)
             {
-                Log.Error($"При старте возникли несовместимые с работой проблемы: {startResult.Error}");
+                logger.Error($"Can't work. Reason: {startResult.Error}");
                 return;
             }
 
-            var settings = startResult.Result;
+            var (agentId, agentInfo, inventory) = startResult.Result;
             var krakerApi = container.GetService<IKrakerApi>();
 
-            //todo: нужно ли теперь это? 
-            Environment.CurrentDirectory = Path.GetDirectoryName(settings.Config.HashCat.Path);
             Console.CancelKeyPress += (s, o) => cancelKeyPressWater.SetResult(true);
 
-            AddYourselfToWerExcluded();
+            AddYourselfToWerExcluded(logger);
 
-            InitializeAgentForServer(settings, krakerApi);
+            InitializeAgentForServer(agentId, agentInfo, inventory, krakerApi);
 
-            InitializeCheckInventoryTimer(settings, krakerApi);
+            InitializeCheckInventoryTimer(logger, agentId, config, krakerApi, container.GetService<IInventoryManager>());
 
-            Work(settings, container);
+            Work(logger, config, container);
 
             CleanUp();
 
             RemoveYourselfFromWerExcluded();
         }
 
-        private static void InitializeAgentForServer(Settings settings, IKrakerApi krakerApi)
+        private static void InitializeAgentForServer(AgentId agentId, AgentInfo agentInfo, Inventory inventory, IKrakerApi krakerApi)
         {
-            var agentInventoryManager = new AgentInventoryManager(settings.WorkedDirectories);
             krakerApi.RegisterAgent()
-                .ContinueWith(o => krakerApi.SendAgentInfo(settings.Config.AgentId, settings.AgentInfo))
-                .ContinueWith(o => krakerApi.SendAgentInventory(settings.Config.AgentId, agentInventoryManager.Get()))
+                .ContinueWith(o => krakerApi.SendAgentInfo(agentId.Value, agentInfo))
+                .ContinueWith(o => krakerApi.SendAgentInventory(agentId.Value, inventory.Files))
                 .Wait();
         }
 
-        private static void InitializeCheckInventoryTimer(Settings settings, IKrakerApi krakerApi)
+        private static void InitializeCheckInventoryTimer(ILogger logger,
+            AgentId agentId,
+            Config config,
+            IKrakerApi krakerApi,
+            IInventoryManager inventoryManager)
         {
-            var agentInventoryManager = new AgentInventoryManager(settings.WorkedDirectories);
-            var inventoryCheckPeriod = TimeSpan.FromSeconds(settings.Config.InventoryCheckPeriod.Value);
+            var inventoryCheckPeriod = TimeSpan.FromSeconds(config.InventoryCheckPeriod.Value);
 
             checkInventoryTimer = new Timer(o =>
             {
                 try
                 {
-                    if (agentInventoryManager.UpdateFileDescriptions())
-                        krakerApi.SendAgentInventory(settings.Config.AgentId, agentInventoryManager.Get());
+                    var (inventoryWasChanged, inventory) = inventoryManager.UpdateFileDescriptions();
+                    if (inventoryWasChanged)
+                        krakerApi.SendAgentInventory(agentId.Value, inventory.Files);
                 }
                 catch (Exception e)
                 {
-                    Log.Message($"Словили исключение при проверке инвентаря: {e}");
+                    logger.Error($"Словили исключение при проверке инвентаря: {e}");
                 }
                 finally
                 {
@@ -81,10 +93,10 @@ namespace Cracker.App
             }, null, TimeSpan.FromSeconds(0), TimeSpan.FromMilliseconds(-1));
         }
 
-        private static void Work(Settings settings, IServiceProvider container)
+        private static void Work(ILogger logger,Config config, IServiceProvider container)
         {
-            var hearbeatPeriod = TimeSpan.FromSeconds(settings.Config.HearbeatPeriod.Value);
-            var agent = new Agent(settings, container.GetService<IJobHandlerProvider>());
+            var hearbeatPeriod = TimeSpan.FromSeconds(config.HearbeatPeriod.Value);
+            var agent = container.GetService<IAgent>();
             agentTimer = new Timer(o =>
                 {
                     try
@@ -93,15 +105,15 @@ namespace Cracker.App
                     }
                     catch (Exception e)
                     {
-                        Log.Message($"Словили необработанное исключение в работе агента: {e}");
-                        agent = container.GetService<Agent>();
+                        logger.Error($"Got an unhandled exception: {e}");
+                        agent = container.GetService<IAgent>();
                     }
                 },
                 null, TimeSpan.FromSeconds(0), hearbeatPeriod);
 
-            Log.Message("Агент работает");
+            logger.Information("An agent is working now");
             cancelKeyPressWater.Task.Wait();
-            Log.Message("Ой, всё!");
+            logger.Information("An agent's stopped");
         }
 
         private static void CleanUp()
@@ -110,12 +122,12 @@ namespace Cracker.App
             agentTimer.Dispose();
         }
 
-        private static void AddYourselfToWerExcluded()
+        private static void AddYourselfToWerExcluded(ILogger logger)
         {
             var pwzExeName = Process.GetCurrentProcess().MainModule.FileName;
             var res = Wer.WerAddExcludedApplication(pwzExeName, false);
             if (res != 0)
-                Log.Message("Не удалось отрубить WER для процесса, запускать надо из-под администратора");
+                logger.Information("Can't turn off WER for the process. Try to run the application under an admin role");
 
             Wer.SetErrorMode(ErrorModes.SEM_NONE);
         }
