@@ -6,7 +6,6 @@ using Cracker.Base.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Extensions.Http;
-using Polly.Retry;
 using Refit;
 using Serilog;
 
