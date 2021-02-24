@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Cracker.Base;
@@ -47,7 +48,7 @@ namespace Cracker.App
 
             AddYourselfToWerExcluded(logger);
 
-            await InitializeAgentForServer(agentId, agentInfo, inventory, krakerApi);
+            await InitializeAgentForServer(logger, agentId, agentInfo, inventory, krakerApi);
 
             InitializeCheckInventoryTimer(logger, agentId, config, krakerApi, container.GetService<IInventoryManager>());
 
@@ -58,9 +59,11 @@ namespace Cracker.App
             RemoveYourselfFromWerExcluded();
         }
 
-        private static async Task InitializeAgentForServer(AgentId agentId, AgentInfo agentInfo, Inventory inventory, IKrakerApi krakerApi)
+        private static async Task InitializeAgentForServer(ILogger logger, AgentId agentId, AgentInfo agentInfo, Inventory inventory, IKrakerApi krakerApi)
         {
             await krakerApi.SendAgentInfo(agentId.Id, agentInfo);
+            
+            logger.Information("Send inventory: {0}", JsonSerializer.Serialize(inventory.Files));
             await krakerApi.SendAgentInventory(agentId.Id, inventory.Files);
         }
 
@@ -99,7 +102,8 @@ namespace Cracker.App
                 {
                     try
                     {
-                        agent.Work();
+                       var t = agent.Work();
+                       t.Wait();
                     }
                     catch (Exception e)
                     {

@@ -8,6 +8,7 @@ namespace Cracker.Base.Model
         TemplateWordlist,
         Bruteforce,
         WordList,
-        UnrecognizedJob
+        UnrecognizedJob,
+        DoNothing
     }
 }

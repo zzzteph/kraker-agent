@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Cracker.Base.Domain.AgentId;
 using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
@@ -62,7 +63,7 @@ namespace Cracker.Base
             return new PrepareJobResult(job, arguments, paths, true, null);
         }
 
-        public void Clear(ExecutionResult executionResult)
+        public async Task Clear(ExecutionResult executionResult)
         {
             var paths = executionResult.Paths;
             _tempFileManager.SoftDelete(paths.HashFile, Constants.HashFile);
@@ -70,7 +71,7 @@ namespace Cracker.Base
             var jobId = (executionResult.Job as WordListJob).JobId;
             if (!executionResult.IsSuccessful)
             {
-                _krakerApi.SendJob(_agentId, jobId, JobResponse.FromError(jobId, executionResult.ErrorMessage));
+                await _krakerApi.SendJob(_agentId, jobId, JobResponse.FromError(jobId, executionResult.ErrorMessage));
                 DeleteOutputAndPotfile(paths);
                 return;
             }
@@ -79,7 +80,7 @@ namespace Cracker.Base
                 e.Contains("No hashes loaded") || e.Contains("Unhandled Exception"));
             if (err != null)
             {
-                _krakerApi.SendJob(_agentId, jobId, JobResponse.FromError(jobId, err));
+                await _krakerApi.SendJob(_agentId, jobId, JobResponse.FromError(jobId, err));
                 DeleteOutputAndPotfile(paths);
                 return;
             }
@@ -90,13 +91,13 @@ namespace Cracker.Base
                 var outfile = Convert.ToBase64String(File.ReadAllBytes(paths.OutputFile));
                 var potfile = Convert.ToBase64String(File.ReadAllBytes(paths.PotFile));
 
-                _krakerApi.SendJob(_agentId, jobId, new (jobId, outfile, potfile, speed, null));
+                await _krakerApi.SendJob(_agentId, jobId, new (jobId, outfile, potfile, speed, null));
                 DeleteOutputAndPotfile(paths);
             }
             else
             {
                 _logger.Information("An output file doesn't exist");
-                _krakerApi.SendJob(_agentId, jobId, new (jobId, null, string.Empty, speed, null));
+                await _krakerApi.SendJob(_agentId, jobId, new (jobId, null, string.Empty, speed, null));
             }
         }
         

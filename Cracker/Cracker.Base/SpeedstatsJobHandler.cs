@@ -1,4 +1,5 @@
-﻿using Cracker.Base.Domain.AgentId;
+﻿using System.Threading.Tasks;
+using Cracker.Base.Domain.AgentId;
 using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
 using Cracker.Base.Model.Jobs;
@@ -16,28 +17,30 @@ namespace Cracker.Base
         private readonly IKrakerApi _krakerApi;
         private readonly ISpeedCalculator _speedCalculator;
         private readonly string _agentId;
+        private readonly IArgumentsBuilder _argumentsBuilder;
         public SpeedstatsJobHandler(
             IKrakerApi krakerApi,
             ISpeedCalculator speedCalculator,
-            IAgentIdManager agentIdManager)
+            IAgentIdManager agentIdManager,
+            IArgumentsBuilder argumentsBuilder)
         {
             _krakerApi = krakerApi;
             _speedCalculator = speedCalculator;
+            _argumentsBuilder = argumentsBuilder;
             _agentId = agentIdManager.GetCurrent().Id;
         }
 
         public PrepareJobResult Prepare(AbstractJob job) 
-            => PrepareJobResult.FromArguments($"-b -m {(job as SpeedStatJob).HashTypeId} --machine-readable");
+            => PrepareJobResult.FromArguments(job, _argumentsBuilder.Build(job, null));
 
-        public void Clear(ExecutionResult executionResult)
+        public async Task Clear(ExecutionResult executionResult)
         {
             var speed = _speedCalculator.CalculateBenchmark(executionResult.Output);
             
             var hashTypeId = (executionResult.Job as SpeedStatJob).HashTypeId;
             var stat = new SpeedStatResponse(hashTypeId, speed.ToString());
 
-            _krakerApi.SendSpeedStats(_agentId,
-                hashTypeId,
+            await _krakerApi.SendSpeedStats(_agentId,
                 stat);
         }
     }

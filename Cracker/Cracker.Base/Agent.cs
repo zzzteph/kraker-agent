@@ -1,9 +1,8 @@
-﻿using System;
-using System.IO;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Cracker.Base.Domain.AgentId;
 using Cracker.Base.Domain.HashCat;
+using Cracker.Base.Model;
 using Cracker.Base.Services;
 using Cracker.Base.Settings;
 using Serilog;
@@ -54,7 +53,7 @@ namespace Cracker.Base
             _switch.SetStateAction(DoNothing);
 
             var job = await _krakerApi.GetJob(_agentId);
-            if (job.Type == null)
+            if (job == null || job is IncorrectJob or DoNothingJob)
             {
                 _switch.SetStateAction(WaitJob);
                 return;
@@ -65,8 +64,6 @@ namespace Cracker.Base
             if (preparationResult.IsReadyForExecution)
             {
                 cts = new CancellationTokenSource();
-                var hashcatPath = _config.HashCat.Path;
-                Environment.CurrentDirectory = Path.GetDirectoryName(hashcatPath);
                 hashcatTask = new HashCatCommandExecuter(preparationResult, _config.HashCat, _logger, _workingDirectory)
                     .Execute(cts.Token);
 
@@ -88,10 +85,10 @@ namespace Cracker.Base
 
             if (!hashcatTask.IsCompleted)
             {
-                var heartbeat = _krakerApi.SendAgentStatus(_config.AgentId).Result;
+                var heartbeat = await _krakerApi.SendAgentStatus(_agentId);
                 if (heartbeat.Status == "cancel")
                 {
-                    _logger.Information("The job is cancel");
+                    _logger.Information("The job is canceled");
                     cts.Cancel();
                 }
 
@@ -99,7 +96,7 @@ namespace Cracker.Base
                 return;
             }
 
-            jobHandler.Clear(hashcatTask.Result);
+            await jobHandler.Clear(hashcatTask.Result);
 
             jobHandler = null;
             hashcatTask = null;

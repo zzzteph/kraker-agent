@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Cracker.Base.Domain.AgentId;
 using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
@@ -35,12 +36,12 @@ namespace Cracker.Base
         public PrepareJobResult Prepare(AbstractJob job) 
             => PrepareJobResult.FromArguments(_argumentsBuilder.Build(job, null));
 
-        public void Clear(ExecutionResult executionResult)
+        public async Task Clear(ExecutionResult executionResult)
         {
             var keyspace = executionResult.Output.LastOrDefault(o => o != null);
             var templateId = (executionResult.Job as TemplateJob).TemplateId;
 
-            _krakerApi.SendTemplate(_agentId,
+            await _krakerApi.SendTemplate(_agentId,
                 templateId,
                 new TemplateResponse(long.Parse(keyspace), null)
             );

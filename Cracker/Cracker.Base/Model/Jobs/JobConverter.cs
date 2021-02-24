@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Cracker.Base.Model.Jobs;
-using Cracker.Base.Model.Responses;
 
 namespace Cracker.Base.Model
 {
@@ -17,7 +16,8 @@ namespace Cracker.Base.Model
             {JobType.TemplateMask, typeof(TemplateMaskJob)},
             {JobType.TemplateWordlist, typeof(TemplateWordListJob)},
             {JobType.Bruteforce, typeof(BruteforceJob)},
-            {JobType.WordList, typeof(WordListJob)}
+            {JobType.WordList, typeof(WordListJob)},
+            {JobType.DoNothing, typeof(DoNothingJob)}
         };
 
         public override bool CanConvert(Type typeToConvert)

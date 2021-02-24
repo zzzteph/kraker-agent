@@ -15,12 +15,21 @@ namespace Cracker.Base
         private readonly IReadOnlyDictionary<JobType, IJobHandler> _map;
 
         public JobHandlerProvider(IBruteforceJobHandler bruteforceJobHandler,
-            IIncorrectJobHandler incorrectJobHandler)
+            IIncorrectJobHandler incorrectJobHandler,
+            IHashListJobHandler hashListJobHandler,
+            ISpeedstatsJobHandler speedstatsJobHandler,
+            ITemplateJobHandler templateJobHandler,
+            IWordListJobHandler wordListJobHandler)
         {
             _incorrectJobHandler = incorrectJobHandler;
             _map = new Dictionary<JobType, IJobHandler>
             {
-                {JobType.Bruteforce, bruteforceJobHandler}
+                {JobType.Bruteforce, bruteforceJobHandler},
+                {JobType.HashList, hashListJobHandler},
+                {JobType.SpeedStat, speedstatsJobHandler},
+                {JobType.TemplateMask, templateJobHandler},
+                {JobType.TemplateWordlist, templateJobHandler},
+                {JobType.WordList, wordListJobHandler}
             };
         }
 

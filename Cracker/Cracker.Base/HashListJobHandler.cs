@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Cracker.Base.Domain.AgentId;
 using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
@@ -11,7 +12,11 @@ using Cracker.Base.Settings;
 
 namespace Cracker.Base
 {
-    public class HashListJobHandler : IJobHandler
+    public interface IHashListJobHandler : IJobHandler
+    {
+    }
+
+    public class HashListJobHandler : IHashListJobHandler
     {
         private readonly IKrakerApi _krakerApi;
         private readonly string _agentId;
@@ -50,7 +55,7 @@ namespace Cracker.Base
             return new PrepareJobResult(job, arguments, paths, true, null);
         }
 
-        public void Clear(ExecutionResult executionResult)
+        public async Task Clear(ExecutionResult executionResult)
         {
             var error = executionResult.Errors.FirstOrDefault(e =>
                 e.Contains("No hashes loaded") || e.Contains("Unhandled Exception"));
@@ -65,15 +70,15 @@ namespace Cracker.Base
 
             if (error != null)
                 if (error.Contains("No hashes loaded"))
-                    _krakerApi.SendHashList(_agentId,
+                    await _krakerApi.SendHashList(_agentId,
                         (executionResult.Job as HashListJob).HashListId,
                         new HashListResponse(0, "No hashes loaded"));
                 else
-                    _krakerApi.SendHashList(_agentId,
+                    await _krakerApi.SendHashList(_agentId,
                         (executionResult.Job as HashListJob).HashListId,
                         new HashListResponse(0, error));
             else
-                _krakerApi.SendHashList(_agentId,
+                await _krakerApi.SendHashList(_agentId,
                     (executionResult.Job as HashListJob).HashListId,
                     new HashListResponse(executionResult.Output.Count, null));
         }

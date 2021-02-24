@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Cracker.Base.Domain.AgentId;
 using Cracker.Base.Domain.HashCat;
 using Cracker.Base.Model;
@@ -49,7 +50,7 @@ namespace Cracker.Base
             if (string.IsNullOrEmpty(bruteforceJob.Content))
                 return PrepareJobResult
                     .FromError(
-                        $"Got empty content for a bruteforce job: HashId ={bruteforceJob.HashlistId}, JobId={bruteforceJob.JobId}");
+                        $"Got empty content for a bruteforce job: HashId ={bruteforceJob.HashListId}, JobId={bruteforceJob.JobId}");
 
             var arguments = _argumentsBuilder.Build(job, paths);
             
@@ -60,7 +61,7 @@ namespace Cracker.Base
         }
 
 
-        public void Clear(ExecutionResult executionResult)
+        public async Task Clear(ExecutionResult executionResult)
         {
             var paths = executionResult.Paths;
             _tempFileManager.SoftDelete(paths.HashFile, Constants.HashFile);
@@ -68,7 +69,7 @@ namespace Cracker.Base
             var jobId = (executionResult.Job as BruteforceJob).JobId;
             if (!executionResult.IsSuccessful)
             {
-                _krakerApi.SendJob(_agentId, jobId,
+                await _krakerApi.SendJob(_agentId, jobId,
                     JobResponse.FromError(jobId, executionResult.ErrorMessage));
                 
                 DeleteOutputAndPotfile(paths);
@@ -80,7 +81,7 @@ namespace Cracker.Base
 
             if (err != null)
             {
-                _krakerApi.SendJob(_agentId, jobId, JobResponse.FromError(jobId, err));
+                await _krakerApi.SendJob(_agentId, jobId, JobResponse.FromError(jobId, err));
                 DeleteOutputAndPotfile(paths);
                 return;
             }
@@ -91,13 +92,13 @@ namespace Cracker.Base
                 var outfile = Convert.ToBase64String(File.ReadAllBytes(paths.OutputFile));
                 var potfile = Convert.ToBase64String(File.ReadAllBytes(paths.PotFile));
 
-                _krakerApi.SendJob(_agentId, jobId,new (jobId, outfile, potfile, speed, null));
+                await _krakerApi.SendJob(_agentId, jobId,new (jobId, outfile, potfile, speed, null));
                 DeleteOutputAndPotfile(paths);
             }
             else
             {
                 _logger.Information("Output file doesn't exist");
-                _krakerApi.SendJob(_agentId, jobId,new(jobId, null, String.Empty, speed, null));
+                await _krakerApi.SendJob(_agentId, jobId,new(jobId, null, String.Empty, speed, null));
             }
         }
 

@@ -8,7 +8,7 @@ namespace Cracker.Base.Model
         public const string AgentInfoFile = "agent-info.json";
         public const string InventoryFile = "inventory.json";
         public const string WordlistsFolder = "wordlist";
-        public const string RulesFolder = "rules";
+        public const string RulesFolder = "rule";
         public const string TempFolder = "tmp";
         public const string AgentIdFile = "agentId";
 
