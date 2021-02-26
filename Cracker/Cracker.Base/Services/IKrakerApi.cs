@@ -30,7 +30,7 @@ namespace Cracker.Base.Services
         
         [Put("/api/hashlists/{hashlist_id}")]
         Task SendHashList([AliasAs("agent_id")][Query] string agentId,
-            [AliasAs("hashlist_id")] long hashlistId,
+            [AliasAs("hashlist_id")] string hashlistId,
             [Body] HashListResponse hashListResponse);
         
         

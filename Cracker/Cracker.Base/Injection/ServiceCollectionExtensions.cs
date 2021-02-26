@@ -39,7 +39,8 @@ namespace Cracker.Base.Injection
                     .AddClasses()
                     .AsImplementedInterfaces()
                     .WithSingletonLifetime()
-                );
+                )
+                .AddTransient<IAgent, Agent>();
 
         public static IServiceCollection RegisterLogging(this IServiceCollection services)
         {

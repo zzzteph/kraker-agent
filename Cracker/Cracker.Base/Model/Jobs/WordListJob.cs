@@ -4,7 +4,7 @@ using Cracker.Base.Model.Jobs;
 namespace Cracker.Base.Model
 {
     public record WordListJob(long JobId,
-        long HashListId,
+        string HashListId,
         int HashTypeId,
         long Skip,
         long Limit,
@@ -15,7 +15,7 @@ namespace Cracker.Base.Model
     {
         [JsonPropertyName("job_id")] public long JobId { get; init; } = JobId;
 
-        [JsonPropertyName("hashlist_id")] public long HashListId { get; init; } = HashListId;
+        [JsonPropertyName("hashlist_id")] public string HashListId { get; init; } = HashListId;
 
         [JsonPropertyName("hashtype_id")] public int HashTypeId { get; init; } = HashTypeId;
 

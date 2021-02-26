@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Cracker.Base.Domain.AgentId;
 using Cracker.Base.Domain.HashCat;
@@ -51,7 +52,7 @@ namespace Cracker.Base
         public async Task WaitJob()
         {
             _switch.SetStateAction(DoNothing);
-
+            
             var job = await _krakerApi.GetJob(_agentId);
             if (job == null || job is IncorrectJob or DoNothingJob)
             {
