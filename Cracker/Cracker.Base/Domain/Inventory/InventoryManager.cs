@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
+using Cracker.Base.Domain.AgentId;
 using Cracker.Base.Model;
+using Cracker.Base.Services;
 using Cracker.Base.Settings;
 using Serilog;
 using static Cracker.Base.Model.Constants;
@@ -12,8 +15,9 @@ namespace Cracker.Base.Domain.Inventory
 {
     public interface IInventoryManager
     {
-        OperationResult<Inventory> Initialize();
-        (bool wasChanged, Inventory Inventory) UpdateFileDescriptions();
+        Task<OperationResult<Inventory>> Initialize();
+        Inventory GetCurrent();
+        Task<Inventory> UpdateFileDescriptions();
     }
 
     public class InventoryManager : IInventoryManager
@@ -22,23 +26,29 @@ namespace Cracker.Base.Domain.Inventory
         private readonly string _inventoryFilePath;
         private readonly ILogger _logger;
         private readonly WorkedFolders _workedFolders;
+        private readonly IAgentIdManager _agentIdManager;
 
         private Dictionary<string, FileDescription> _fileDescriptions;
         private Inventory _currentInventory;
+        private readonly IKrakerApi _krakerApi;
 
         public InventoryManager(
             AppFolder appFolder,
             ILogger logger,
             IWorkedFoldersProvider workedFoldersProvider,
-            IFileDescriptionBuilder descriptionBuilder)
+            IFileDescriptionBuilder descriptionBuilder,
+            IKrakerApi krakerApi,
+            IAgentIdManager agentIdManager)
         {
             _logger = logger;
             _descriptionBuilder = descriptionBuilder;
+            _krakerApi = krakerApi;
+            _agentIdManager = agentIdManager;
             _workedFolders = workedFoldersProvider.Get();
             _inventoryFilePath = Path.Combine(appFolder.Value, ArtefactsFolder, InventoryFile);
         }
 
-        public OperationResult<Inventory> Initialize()
+        public async Task<OperationResult<Inventory>> Initialize()
         {
             try
             {
@@ -48,7 +58,9 @@ namespace Cracker.Base.Domain.Inventory
 
                 File.WriteAllText(_inventoryFilePath, JsonSerializer.Serialize(_fileDescriptions));
 
-                _currentInventory = new Inventory(_fileDescriptions);
+                var agentId = _agentIdManager.GetCurrent().Id;
+                var files = await _krakerApi.SendAgentInventory(agentId, _fileDescriptions.Values.ToArray());
+                _currentInventory = new Inventory(files);
                 return OperationResult<Inventory>.Success(_currentInventory);
             }
             catch (Exception e)
@@ -59,9 +71,10 @@ namespace Cracker.Base.Domain.Inventory
             }
         }
 
+        public Inventory GetCurrent() => _currentInventory;
 
-       
-        public (bool wasChanged, Inventory Inventory) UpdateFileDescriptions()
+
+        public async Task<Inventory> UpdateFileDescriptions()
         {
             _logger.Information("[inventory] Time to check inventory!");
 
@@ -102,14 +115,17 @@ namespace Cracker.Base.Domain.Inventory
             {
                 _logger.Information("[inventory] Changes've detected, save data");
                 File.WriteAllText(_inventoryFilePath, JsonSerializer.Serialize(_fileDescriptions));
-                _currentInventory = new Inventory(_fileDescriptions);
+                
+                var agentId = _agentIdManager.GetCurrent().Id;
+                var files = await _krakerApi.SendAgentInventory(agentId, _fileDescriptions.Values.ToArray());
+                _currentInventory = new Inventory(files);
             }
             else
             {
                 _logger.Information("[inventory] Checking has finished, changes've not detected");
             }
 
-            return (isChanged, _currentInventory);
+            return _currentInventory;
         }
     }
 }

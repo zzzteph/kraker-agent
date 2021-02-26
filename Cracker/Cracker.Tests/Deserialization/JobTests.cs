@@ -10,12 +10,12 @@ namespace CrackerTester.Deserialization
         private static object[] Jobs =
         {
             new object[] {new SpeedStatJob(10)},
-            new object[] {new HashListJob(25, 4, "content")},
-            new object[] {new TemplateMaskJob(33, "mask", "1", "2", "3", "4")},
-            new object[] {new TemplateWordListJob(25,"wordlist", "rule")},
-            new object[] {new TemplateWordListJob(25,"wordlist", null)},
-            new object[] {new BruteforceJob(45, 100, 3, 5, 8,"mask", "1", "2", "3", "4","content", "pot")},
-            new object[] {new WordListJob(9, 45, 100, 3, 8, "wordlist", "rule","content", "pot")}
+            new object[] {new HashListJob("25", 4, "content")},
+            new object[] {new TemplateBruteforceJob(33, "mask", "1", "2", "3", "4")},
+            new object[] {new TemplateWordListJob(25,3, null)},
+            new object[] {new TemplateWordListJob(25,5, 6)},
+            new object[] {new BruteforceJob(45, "100", 3, 5, 8,"mask", "1", "2", "3", "4","content", "pot")},
+            new object[] {new WordListJob(9, "45", 100, 3, 8, 999, 8238,"content", "pot")}
         };
 
         [TestCaseSource(nameof(Jobs))]

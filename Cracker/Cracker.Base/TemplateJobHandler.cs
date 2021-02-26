@@ -34,16 +34,17 @@ namespace Cracker.Base
         }
 
         public PrepareJobResult Prepare(AbstractJob job) 
-            => PrepareJobResult.FromArguments(_argumentsBuilder.Build(job, null));
+            => PrepareJobResult.FromArguments(job, _argumentsBuilder.Build(job, null));
 
         public async Task Clear(ExecutionResult executionResult)
         {
             var keyspace = executionResult.Output.LastOrDefault(o => o != null);
             var templateId = (executionResult.Job as TemplateJob).TemplateId;
 
+            var keyspaceIsLong = long.TryParse(keyspace, out var keyspaceAsLong);
             await _krakerApi.SendTemplate(_agentId,
                 templateId,
-                new TemplateResponse(long.Parse(keyspace), null)
+                new TemplateResponse(keyspaceIsLong?keyspaceAsLong:0, null)
             );
         }
     }

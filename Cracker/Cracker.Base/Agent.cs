@@ -57,6 +57,7 @@ namespace Cracker.Base
             if (job == null || job is IncorrectJob or DoNothingJob)
             {
                 _switch.SetStateAction(WaitJob);
+                _logger.Information("Got a job {0}", job);
                 return;
             }
 

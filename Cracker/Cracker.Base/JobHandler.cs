@@ -27,7 +27,7 @@ namespace Cracker.Base
                 {JobType.Bruteforce, bruteforceJobHandler},
                 {JobType.HashList, hashListJobHandler},
                 {JobType.SpeedStat, speedstatsJobHandler},
-                {JobType.TemplateMask, templateJobHandler},
+                {JobType.TemplateBruteforce, templateJobHandler},
                 {JobType.TemplateWordlist, templateJobHandler},
                 {JobType.WordList, wordListJobHandler}
             };

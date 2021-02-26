@@ -4,7 +4,7 @@ namespace Cracker.Base.Model
     {
         SpeedStat = 1,
         HashList,
-        TemplateMask,
+        TemplateBruteforce,
         TemplateWordlist,
         Bruteforce,
         WordList,

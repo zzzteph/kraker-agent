@@ -13,7 +13,7 @@ namespace Cracker.Base.Model
         {
             {JobType.SpeedStat, typeof(SpeedStatJob)},
             {JobType.HashList, typeof(HashListJob)},
-            {JobType.TemplateMask, typeof(TemplateMaskJob)},
+            {JobType.TemplateBruteforce, typeof(TemplateBruteforceJob)},
             {JobType.TemplateWordlist, typeof(TemplateWordListJob)},
             {JobType.Bruteforce, typeof(BruteforceJob)},
             {JobType.WordList, typeof(WordListJob)},

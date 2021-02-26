@@ -8,7 +8,7 @@ namespace Cracker.Base.Settings
 {
     public interface IAgentRegistrationManager
     {
-        Task<(AgentId agentId, AgentInfo agentInfo)> Register();
+        Task Register();
     }
 
     public class AgentRegistrationManager : IAgentRegistrationManager
@@ -30,21 +30,19 @@ namespace Cracker.Base.Settings
             _agentIdManager = agentIdManager;
         }
 
-        public async Task<(AgentId agentId, AgentInfo agentInfo)> Register()
+        public async Task Register()
         {
             var (registrationIsNeeded, agentInfo) = RegistrationIsNeeded();
 
             if (!registrationIsNeeded)
-                return (_agentIdManager.GetCurrent(), agentInfo);
+                return;
             
             var agentId = await _krakerApi.RegisterAgent();
+            await _krakerApi.SendAgentInfo(agentId.Id, agentInfo);
             
             _agentIdManager.Save(agentId);
             
             _agentInfoManager.Save(agentInfo);
-
-            return (_agentIdManager.GetCurrent(), agentInfo);
-
         }
 
         private (bool IsNeeded, AgentInfo ActualAgentInfo) RegistrationIsNeeded()

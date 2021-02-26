@@ -10,14 +10,14 @@ namespace Cracker.Base
 {
     public interface IStartup
     {
-        Task<OperationResult<(AgentId agentId, AgentInfo agentInfo, Inventory inventory)>> Start();
+        Task<OperationResult> Start();
     }
 
     public class Startup : IStartup
     {
         private readonly IConfigValidator _configValidator;
         private readonly IAgentRegistrationManager _registrationManager;
-        private readonly IInventoryManager inventoryManager;
+        private readonly IInventoryManager _inventoryManager;
         private readonly IWorkingDirectoryProvider _workingDirectoryProvider;
         
         private readonly IKrakerApi _krakerApi;
@@ -34,27 +34,26 @@ namespace Cracker.Base
             _configValidator = configValidator;
             _config = config;
             _registrationManager = registrationManager;
-            this.inventoryManager = inventoryManager;
+            _inventoryManager = inventoryManager;
             _workingDirectoryProvider = workingDirectoryProvider;
         }
 
-        public async Task<OperationResult<(AgentId agentId, AgentInfo agentInfo, Inventory inventory)>> Start()
+        public async Task<OperationResult> Start()
         {
             Environment.CurrentDirectory = _workingDirectoryProvider.Get();
             
             var configResult = _configValidator.Validate();
             if (!configResult.IsSuccess)
-                return OperationResult<(AgentId, AgentInfo, Inventory)>.Fail(configResult.Error);
+                return OperationResult.Fail(configResult.Error);
 
-            var (agentId, agentInfo) = await _registrationManager.Register();
+            await _registrationManager.Register();
             
-            var inventoryResult = inventoryManager.Initialize();
+            var inventoryResult = await _inventoryManager.Initialize();
 
             if (!inventoryResult.IsSuccess)
-                return OperationResult<(AgentId, AgentInfo, Inventory)>.Fail(inventoryResult.Error);
+                return OperationResult.Fail(inventoryResult.Error);
 
-            return OperationResult<(AgentId, AgentInfo, Inventory)>
-                .Success((agentId, agentInfo, inventoryResult.Result));
+            return OperationResult.Success;
         }
     }
 }

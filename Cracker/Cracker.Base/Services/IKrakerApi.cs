@@ -15,7 +15,7 @@ namespace Cracker.Base.Services
         Task SendAgentInfo([AliasAs("agent_id")][Query] string agentId, [Body] AgentInfo agentInfo);
         
         [Post("/api/agents/{agent_id}/inventory")]
-        Task SendAgentInventory([AliasAs("agent_id")][Query] string agentId,[Body] FileDescription[] fileDescriptions);
+        Task<FileDescription[]> SendAgentInventory([AliasAs("agent_id")][Query] string agentId,[Body] FileDescription[] fileDescriptions);
         
         [Post("/api/agents/{agent_id}/status")]
         Task<WorkStatus> SendAgentStatus([AliasAs("agent_id")][Query] string agentId);

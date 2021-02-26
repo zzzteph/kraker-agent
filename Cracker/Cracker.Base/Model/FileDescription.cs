@@ -5,6 +5,7 @@ namespace Cracker.Base.Model
 {
     public class FileDescription
     {
+        public long Id { get; set; }
         [JsonPropertyName("name")] public string Name { get; set; }
 
         [JsonPropertyName("size")] public long Size { get; set; }

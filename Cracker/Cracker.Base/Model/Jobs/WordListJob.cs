@@ -8,8 +8,8 @@ namespace Cracker.Base.Model
         int HashTypeId,
         long Skip,
         long Limit,
-        string Wordlist,
-        string Rule,
+        long WordlistId,
+        long? RuleId,
         string Content,
         string PotContent) : AbstractJob(JobType.WordList)
     {
@@ -19,6 +19,13 @@ namespace Cracker.Base.Model
 
         [JsonPropertyName("hashtype_id")] public int HashTypeId { get; init; } = HashTypeId;
 
-        [JsonPropertyName("pot_content")] public string PotContent { get; init; } = PotContent;
+        [JsonPropertyName("pot_content")] 
+        public string PotContent { get; init; } = PotContent;
+        
+        [JsonPropertyName("wordlist_id")]
+        public long WordlistId { get; init; } = WordlistId;
+
+        [JsonPropertyName("rule_id")]
+        public long? RuleId { get; init; } = RuleId;
     }
 }

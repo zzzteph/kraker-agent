@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,16 +40,12 @@ namespace Cracker.App
                 return;
             }
 
-            var (agentId, agentInfo, inventory) = startResult.Result;
-            var krakerApi = container.GetService<IKrakerApi>();
-
-            Console.CancelKeyPress += (s, o) => cancelKeyPressWater.SetResult(true);
+            Console.CancelKeyPress += (s, o) 
+                => cancelKeyPressWater.SetResult(true);
 
             AddYourselfToWerExcluded(logger);
 
-            await InitializeAgentForServer(logger, agentId, agentInfo, inventory, krakerApi);
-
-            InitializeCheckInventoryTimer(logger, agentId, config, krakerApi, container.GetService<IInventoryManager>());
+            InitializeCheckInventoryTimer(logger, config, container.GetService<IInventoryManager>());
 
             Work(logger, config, container);
 
@@ -59,29 +54,17 @@ namespace Cracker.App
             RemoveYourselfFromWerExcluded();
         }
 
-        private static async Task InitializeAgentForServer(ILogger logger, AgentId agentId, AgentInfo agentInfo, Inventory inventory, IKrakerApi krakerApi)
-        {
-            await krakerApi.SendAgentInfo(agentId.Id, agentInfo);
-            
-            logger.Information("Send inventory: {0}", JsonSerializer.Serialize(inventory.Files));
-            await krakerApi.SendAgentInventory(agentId.Id, inventory.Files);
-        }
-
         private static void InitializeCheckInventoryTimer(ILogger logger,
-            AgentId agentId,
             Config config,
-            IKrakerApi krakerApi,
             IInventoryManager inventoryManager)
         {
             var inventoryCheckPeriod = TimeSpan.FromSeconds(config.InventoryCheckPeriod.Value);
 
-            checkInventoryTimer = new Timer(o =>
+            checkInventoryTimer = new Timer(async o =>
             {
                 try
                 {
-                    var (inventoryWasChanged, inventory) = inventoryManager.UpdateFileDescriptions();
-                    if (inventoryWasChanged)
-                        krakerApi.SendAgentInventory(agentId.Id, inventory.Files);
+                    await inventoryManager.UpdateFileDescriptions();
                 }
                 catch (Exception e)
                 {
@@ -94,7 +77,7 @@ namespace Cracker.App
             }, null, TimeSpan.FromSeconds(0), TimeSpan.FromMilliseconds(-1));
         }
 
-        private static void Work(ILogger logger,Config config, IServiceProvider container)
+        private static void Work(ILogger logger, Config config, IServiceProvider container)
         {
             var hearbeatPeriod = TimeSpan.FromSeconds(config.HearbeatPeriod.Value);
             var agent = container.GetService<IAgent>();
