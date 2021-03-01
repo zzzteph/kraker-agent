@@ -365,4 +365,4 @@ FodyWeavers.xsd
 packages/
 rules*/
 wordlist*/
-hashcat*/
+hashcat-*/

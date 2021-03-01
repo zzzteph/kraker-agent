@@ -48,7 +48,7 @@ namespace Kracker.Base.Injection
         {
             var logger = new LoggerConfiguration()
                 .WriteTo.Console()
-                .WriteTo.File(Path.Combine("Logs", "log_{Date}.txt"))
+                .WriteTo.RollingFile(Path.Combine("Logs", "log_{Date}.txt"), retainedFileCountLimit: 7)
                 .CreateLogger();
             
             Log.Logger = logger;
