@@ -8,7 +8,7 @@ namespace Kracker.Base.Services.Model.Jobs
         TemplateWordlist,
         Bruteforce,
         WordList,
-        UnrecognizedJob,
+        IncorrectJob,
         DoNothing
     }
 }

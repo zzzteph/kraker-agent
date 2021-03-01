@@ -20,15 +20,14 @@ namespace Kracker.Base.Domain.Jobs
         private readonly IKrakerApi _krakerApi;
         private readonly ILogger _logger;
         private readonly FiniteStateMachine _switch;
-        private readonly IIncorrectJobHandler _incorrectJobHandler;
+        private readonly IJobHandler _incorrectJobHandler;
         private IJobHandler _jobHandler;
         
 
         public Agent(IJobHandlerProvider jobHandlerProvider,
             IAgentIdManager agentIdManager,
             IKrakerApi krakerApi,
-            ILogger logger,
-            IIncorrectJobHandler incorrectJobHandler)
+            ILogger logger)
         {
             _switch = new FiniteStateMachine(WaitJob);
             _jobHandlerProvider = jobHandlerProvider;
@@ -36,6 +35,8 @@ namespace Kracker.Base.Domain.Jobs
             _logger = logger;
             _agentId = agentIdManager.GetCurrent().Id 
                        ?? throw new InvalidOperationException("The agent needs to have id");
+
+            var incorrectJobHandler = new IncorrectJobHandler(new IncorrectJob("Haven't got any jobs"));
             _jobHandler = incorrectJobHandler;
             _incorrectJobHandler = incorrectJobHandler;
         }

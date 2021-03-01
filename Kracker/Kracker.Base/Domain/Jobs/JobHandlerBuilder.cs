@@ -1,3 +1,4 @@
+using Kracker.Base.Domain.AgentId;
 using Kracker.Base.Domain.Folders;
 using Kracker.Base.Domain.HashCat;
 using Kracker.Base.Services;
@@ -13,6 +14,7 @@ namespace Kracker.Base.Domain.Jobs
         public IJobHandler BuildTemplate(AbstractJob job);
         public IJobHandler BuildWordlist(AbstractJob job);
         public IJobHandler BuildSpeedStat(AbstractJob job);
+        public IJobHandler BuildIncorrect(AbstractJob job);
     }
     
     public class JobHandlerBuilder : IJobHandlerBuilder
@@ -26,17 +28,17 @@ namespace Kracker.Base.Domain.Jobs
         private readonly WorkedFolders _workedFolders;
 
         public JobHandlerBuilder(IKrakerApi krakerApi,
-            WorkedFolders workedFolders,
+            IWorkedFoldersProvider workedFoldersProvider,
             ITempFileManager tempFileManager,
-            string agentId,
+            IAgentIdManager agentIdManager,
             ISpeedCalculator speedCalculator,
             ILogger logger,
             IHashCatCommandExecutorBuilder executorBuilder)
         {
             _krakerApi = krakerApi;
-            _workedFolders = workedFolders;
+            _workedFolders = workedFoldersProvider.Get();
             _tempFileManager = tempFileManager;
-            _agentId = agentId;
+            _agentId = agentIdManager.GetCurrent().Id;
             _speedCalculator = speedCalculator;
             _logger = logger;
             _executorBuilder = executorBuilder;
@@ -72,5 +74,8 @@ namespace Kracker.Base.Domain.Jobs
 
         public IJobHandler BuildSpeedStat(AbstractJob job)
             => new SpeedstatsJobHandler(_krakerApi, _speedCalculator, _agentId, _executorBuilder, job as SpeedStatJob);
+
+        public IJobHandler BuildIncorrect(AbstractJob job)
+            => new IncorrectJobHandler(job as IncorrectJob);
     }
 }

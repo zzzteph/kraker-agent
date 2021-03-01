@@ -4,10 +4,7 @@ using Kracker.Base.Services.Model.Jobs;
 
 namespace Kracker.Base.Domain.Jobs
 {
-    public interface IIncorrectJobHandler : IJobHandler
-    { }
-
-    public class IncorrectJobHandler : IIncorrectJobHandler
+    public class IncorrectJobHandler : IJobHandler
     {
         private readonly IncorrectJob _job;
         public IncorrectJobHandler(IncorrectJob job)
