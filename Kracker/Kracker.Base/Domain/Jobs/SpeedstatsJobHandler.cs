@@ -21,7 +21,7 @@ namespace Kracker.Base.Domain.Jobs
             _speedCalculator = speedCalculator;
         }
 
-        public override async Task Clear()
+        public override async Task Finish()
         {
             var executionResult = _hashCatTask.Result;
             var speed = _speedCalculator.CalculateBenchmark(executionResult.Output);

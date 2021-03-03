@@ -51,7 +51,7 @@ namespace Kracker.Base.Domain.Jobs
             _executor.CancellationToken.Cancel();
         }
 
-        public abstract Task Clear();
+        public abstract Task Finish();
         
     }
 }

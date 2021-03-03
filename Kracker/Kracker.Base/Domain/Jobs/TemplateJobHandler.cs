@@ -18,7 +18,7 @@ namespace Kracker.Base.Domain.Jobs
         { }
 
 
-        public override async Task Clear()
+        public override async Task Finish()
         {
             var executionResult = _hashCatTask.Result;
             var keyspace = executionResult.Output.LastOrDefault(o => o != null);

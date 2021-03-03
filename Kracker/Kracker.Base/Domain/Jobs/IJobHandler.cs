@@ -9,6 +9,6 @@ namespace Kracker.Base.Domain.Jobs
         bool IsCompleted();
         JobDescription GetJobDescription();
         void Cancel();
-        Task Clear();
+        Task Finish();
     }
 }

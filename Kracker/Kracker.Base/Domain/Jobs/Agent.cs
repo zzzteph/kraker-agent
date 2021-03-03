@@ -84,7 +84,7 @@ namespace Kracker.Base.Domain.Jobs
                 return;
             }
 
-            await _jobHandler.Clear();
+            await _jobHandler.Finish();
 
             _jobHandler = _incorrectJobHandler;
             _switch.SetStateAction(WaitJob);

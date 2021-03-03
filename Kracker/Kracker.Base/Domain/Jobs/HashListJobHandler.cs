@@ -32,15 +32,13 @@ namespace Kracker.Base.Domain.Jobs
             _tempFileManager.WriteBase64Content(_paths.PotFile, string.Empty);
         }
 
-        public override async Task Clear()
+        public override async Task Finish()
         {
             var executionResult = _hashCatTask.Result;
             var error = executionResult.Errors.FirstOrDefault(e =>
                 e.Contains("No hashes loaded") || e.Contains("Unhandled Exception"));
 
-
-            if (_paths != null)
-                _tempFileManager.DeleteOutputAndPotfile(_paths);
+            _tempFileManager.DeleteTemFiles(_paths);
 
             if (error != null)
                 if (error.Contains("No hashes loaded"))

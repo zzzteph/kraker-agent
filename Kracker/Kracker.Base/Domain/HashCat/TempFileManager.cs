@@ -10,9 +10,8 @@ namespace Kracker.Base.Domain.HashCat
         TempFilePaths BuildTempFilePaths(string directoryPath);
 
         void WriteBase64Content(string filePath, string content);
-        void SoftDelete(string path, string semanticName);
 
-        void DeleteOutputAndPotfile(TempFilePaths paths);
+        void DeleteTemFiles(TempFilePaths paths);
     }
 
     public class TempFileManager : ITempFileManager
@@ -49,13 +48,14 @@ namespace Kracker.Base.Domain.HashCat
         }
 
         
-        public void DeleteOutputAndPotfile(TempFilePaths paths)
+        public void DeleteTemFiles(TempFilePaths paths)
         {
+            SoftDelete(paths.HashFile, Constants.HashFile);
             SoftDelete(paths.OutputFile, Constants.Output);
             SoftDelete(paths.PotFile, Constants.PotFile);
         }
         
-        public void SoftDelete(string path, string semanticName)
+        private void SoftDelete(string path, string semanticName)
         {
             try
             {
