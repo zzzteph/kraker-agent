@@ -27,7 +27,7 @@ namespace Kracker.Base.Domain.Jobs
             var keyspaceIsLong = long.TryParse(keyspace, out var keyspaceAsLong);
             await _krakerApi.SendTemplate(_agentId,
                 templateId,
-                new TemplateResponse(keyspaceIsLong?keyspaceAsLong:0, null)
+                new TemplateResponse(keyspaceIsLong?keyspaceAsLong:0, null, executionResult.ExecutionTime)
             );
         }
     }

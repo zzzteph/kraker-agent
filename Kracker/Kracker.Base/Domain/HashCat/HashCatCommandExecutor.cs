@@ -59,6 +59,8 @@ namespace Kracker.Base.Domain.HashCat
         {
             
             Timer? workTimer = null;
+            var stopwatch = new Stopwatch();
+            
             try
             {
                 var output = new List<string>();
@@ -147,8 +149,13 @@ namespace Kracker.Base.Domain.HashCat
                         _logger.Information($"Hashcat err: {ea.Data}");
                     };
 
+                    stopwatch.Start();
+                    
                     var code = await RunProcessAsync(process);
+                    
+                    stopwatch.Stop();
                     taskEnd = true;
+                    
                     if (waitNullReceiveOutput)
                         await receiveNullData.Task;
                     workTimer.Dispose();
@@ -156,16 +163,19 @@ namespace Kracker.Base.Domain.HashCat
                         output,
                         errors,
                         isSuccessful,
-                        null
+                        null,
+                        (long) stopwatch.Elapsed.TotalSeconds
                     );
                 }
             }
             catch (Exception e)
             {
+                
+                stopwatch.Stop();
                 workTimer?.Dispose();
 
                 _logger.Error(e, $"Get an exception during hashcat working: {e}");
-                return ExecutionResult.FromError(e.ToString());
+                return ExecutionResult.FromError((long) stopwatch.Elapsed.TotalSeconds, e.ToString());
             }
         }
 

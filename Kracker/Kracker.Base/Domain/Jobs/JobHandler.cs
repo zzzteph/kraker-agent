@@ -28,7 +28,7 @@ namespace Kracker.Base.Domain.Jobs
             _krakerApi = krakerApi;
             _paths = paths;
             _executor = executorBuilder.Build(job, paths);
-            _hashCatTask = Task.FromResult(ExecutionResult.FromError("There isn't a task"));
+            _hashCatTask = Task.FromResult(ExecutionResult.FromError(0,"There isn't a task"));
         }
 
         public void Execute()

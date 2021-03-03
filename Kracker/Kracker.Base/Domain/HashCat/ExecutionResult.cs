@@ -7,13 +7,15 @@ namespace Kracker.Base.Domain.HashCat
         IReadOnlyList<string> Output,
         IReadOnlyList<string> Errors,
         bool IsSuccessful,
-        string? ErrorMessage
+        string? ErrorMessage,
+        long ExecutionTime
     )
     {
-        public static ExecutionResult FromError(string error) => new (null,
+        public static ExecutionResult FromError(long executionTime, string error) => new (null,
             new string[0],
             new string[0],
             false,
-            error);
+            error, 
+            executionTime);
     }
 }

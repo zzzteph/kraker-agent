@@ -46,15 +46,15 @@ namespace Kracker.Base.Domain.Jobs
                 if (error.Contains("No hashes loaded"))
                     await _krakerApi.SendHashList(_agentId,
                         _job.HashListId,
-                        new HashListResponse(0, "No hashes loaded"));
+                        new HashListResponse(0, "No hashes loaded", executionResult.ExecutionTime));
                 else
                     await _krakerApi.SendHashList(_agentId,
                         _job.HashListId,
-                        new HashListResponse(0, error));
+                        new HashListResponse(0, error, executionResult.ExecutionTime));
             else
                 await _krakerApi.SendHashList(_agentId,
                     _job.HashListId,
-                    new HashListResponse(executionResult.Output.Count, null));
+                    new HashListResponse(executionResult.Output.Count, null, executionResult.ExecutionTime));
         }
     }
 }

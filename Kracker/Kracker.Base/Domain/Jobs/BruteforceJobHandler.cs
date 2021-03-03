@@ -45,7 +45,7 @@ namespace Kracker.Base.Domain.Jobs
             if (!result.IsSuccessful)
             {
                 await _krakerApi.SendJob(_agentId, _job.JobId,
-                    JobResponse.FromError(_job.JobId, result.ErrorMessage));
+                    JobResponse.FromError(_job.JobId, result.ExecutionTime, result.ErrorMessage));
 
                 _tempFileManager.DeleteOutputAndPotfile(_paths);
                 return;
@@ -56,7 +56,7 @@ namespace Kracker.Base.Domain.Jobs
 
             if (err != null)
             {
-                await _krakerApi.SendJob(_agentId, _job.JobId, JobResponse.FromError(_job.JobId, err));
+                await _krakerApi.SendJob(_agentId, _job.JobId, JobResponse.FromError(_job.JobId, result.ExecutionTime, err));
                 _tempFileManager.DeleteOutputAndPotfile(_paths);
                 return;
             }
@@ -68,14 +68,14 @@ namespace Kracker.Base.Domain.Jobs
                 var potfile = Convert.ToBase64String(File.ReadAllBytes(_paths.PotFile));
 
                 await _krakerApi.SendJob(_agentId, _job.JobId,
-                    new JobResponse(_job.JobId, outfile, potfile, (long) speed, null));
+                    new JobResponse(_job.JobId, outfile, potfile, (long) speed, null, result.ExecutionTime));
                 _tempFileManager.DeleteOutputAndPotfile(_paths);
             }
             else
             {
                 _logger.Information("Output file doesn't exist");
                 await _krakerApi.SendJob(_agentId, _job.JobId,
-                    new JobResponse(_job.JobId, null, string.Empty, (long) speed, null));
+                    new JobResponse(_job.JobId, null, string.Empty, (long) speed, null, result.ExecutionTime));
             }
         }
     }

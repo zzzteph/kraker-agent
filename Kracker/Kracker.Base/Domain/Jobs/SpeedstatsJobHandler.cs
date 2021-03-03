@@ -27,7 +27,7 @@ namespace Kracker.Base.Domain.Jobs
             var speed = _speedCalculator.CalculateBenchmark(executionResult.Output);
 
             var hashTypeId = _job.HashTypeId;
-            var stat = new SpeedStatResponse(hashTypeId, speed.ToString());
+            var stat = new SpeedStatResponse(hashTypeId, speed.ToString(), executionResult.ExecutionTime);
 
             await _krakerApi.SendSpeedStats(_agentId,
                 stat);
