@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Kracker.Base.Domain.AgentId;
 using Kracker.Base.Domain.AgentInfo;
@@ -13,6 +14,9 @@ namespace Kracker.Base.Services
     {
         [Post("/api/agents/")]
         Task<AgentId> RegisterAgent();
+        
+        [Post("/api/agents/{agent_id}")]
+        Task<HttpResponseMessage> StartAgent([AliasAs("agent_id")][Query] string agentId);
         
         [Post("/api/agents/{agent_id}/info")]
         Task SendAgentInfo([AliasAs("agent_id")][Query] string agentId, [Body] AgentInfo agentInfo);

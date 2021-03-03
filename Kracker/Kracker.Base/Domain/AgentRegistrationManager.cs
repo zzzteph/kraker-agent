@@ -32,13 +32,18 @@ namespace Kracker.Base.Domain
 
         public async Task Register()
         {
-            var (registrationIsNeeded, agentInfo) = RegistrationIsNeeded();
+            var (registrationIsNeeded, agentId, agentInfo) = RegistrationIsNeeded();
 
             if (!registrationIsNeeded)
-                return;
-            
-            var agentId = (await _krakerApi.RegisterAgent()).Id
+            {
+                var startAgentResponse = await _krakerApi.StartAgent(agentId);
+                if (startAgentResponse.IsSuccessStatusCode)
+                    return;
+            }
+                
+            agentId = (await _krakerApi.RegisterAgent()).Id
                 ?? throw new InvalidOperationException("Got agent id == null");
+            
             await _krakerApi.SendAgentInfo(agentId, agentInfo);
             
             _agentIdManager.Save(agentId);
@@ -46,28 +51,28 @@ namespace Kracker.Base.Domain
             _agentInfoManager.Save(agentInfo);
         }
 
-        private (bool IsNeeded, AgentInfo.AgentInfo ActualAgentInfo) RegistrationIsNeeded()
+        private (bool IsNeeded, string? AgentId, AgentInfo.AgentInfo ActualAgentInfo) RegistrationIsNeeded()
         {
             var agentId = _agentIdManager.GetFromFile();
             
             var actualAgentInfo = _agentInfoProvider.Get();
             
             if (agentId.Id is null or "")
-                return (true, actualAgentInfo);
+                return (true, agentId.Id, actualAgentInfo);
 
             var oldAgentInfoOR = _agentInfoManager.GetFromFile();
 
             if (!oldAgentInfoOR.IsSuccess || oldAgentInfoOR.Result is null)
-                return (true, actualAgentInfo);
+                return (true, agentId.Id, actualAgentInfo);
 
             var oldAgentInfo = oldAgentInfoOR.Result;
 
             if (oldAgentInfo.OperationalSystem != actualAgentInfo.OperationalSystem
                 || oldAgentInfo.HostName != actualAgentInfo.HostName
                 || oldAgentInfo.Ip != actualAgentInfo.Ip)
-                return (true, actualAgentInfo);
+                return (true, agentId.Id, actualAgentInfo);
 
-            return (false,  actualAgentInfo);
+            return (false, agentId.Id,  actualAgentInfo);
         }
     }
 }

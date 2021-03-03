@@ -25,9 +25,13 @@ namespace Kracker.Base.Injection
                 .AddPolicyHandler(HttpPolicyExtensions
                     .HandleTransientHttpError()
                     .Or<HttpRequestException>()
+                    .OrResult(responce=> (int) responce.StatusCode >= 400)
                     .WaitAndRetryAsync(3,
                         attempt => TimeSpan.FromMilliseconds(300),
-                        (ex, span) => Log.Error(ex?.Exception?.Message)));
+                        (ex, span) => Log.Error("{0} for {1} {2}. {3} ",
+                            ex.Result.StatusCode, ex.Result.RequestMessage.Method,
+                            ex.Result.RequestMessage.RequestUri?.AbsoluteUri,
+                            ex.Exception)));
 
             return services;
         }

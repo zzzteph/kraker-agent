@@ -68,7 +68,7 @@ namespace Kracker.App
                 }
                 catch (Exception e)
                 {
-                    logger.Error($"Словили исключение при проверке инвентаря: {e}");
+                    logger.Error($"Got an exception while checking inventory: {e}");
                 }
                 finally
                 {
@@ -79,7 +79,7 @@ namespace Kracker.App
 
         private static void Work(ILogger logger, Config config, IServiceProvider container)
         {
-            var hearbeatPeriod = TimeSpan.FromSeconds(config.HearbeatPeriod.Value);
+            var heartbeatPeriod = TimeSpan.FromSeconds(config.HearbeatPeriod.Value);
             var agent = container.GetService<IAgent>();
             agentTimer = new Timer(o =>
                 {
@@ -94,7 +94,7 @@ namespace Kracker.App
                         agent = container.GetService<IAgent>();
                     }
                 },
-                null, TimeSpan.FromSeconds(0), hearbeatPeriod);
+                null, TimeSpan.FromSeconds(0), heartbeatPeriod);
 
             logger.Information("An agent is working now");
             cancelKeyPressWater.Task.Wait();
