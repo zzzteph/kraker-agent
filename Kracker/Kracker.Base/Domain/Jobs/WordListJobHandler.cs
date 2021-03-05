@@ -70,5 +70,8 @@ namespace Kracker.Base.Domain.Jobs
             }
             _tempFileManager.DeleteTemFiles(_paths);
         }
+
+        public override Task Finish(Exception exception)
+            => _krakerApi.SendJob(_agentId, _job.JobId, new(_job.JobId, null, string.Empty, 0, exception.Message, 0));
     }
 }

@@ -60,8 +60,7 @@ namespace Kracker.Base.Domain.Jobs
                 _workedFolders.TempFolderPath,
                 _tempFileManager,
                 job as HashListJob,
-                _executorBuilder,
-                _logger);
+                _executorBuilder);
 
         public IJobHandler BuildTemplate(AbstractJob job)
             => new TemplateJobHandler(job as TemplateJob, _krakerApi, _executorBuilder, _agentId);

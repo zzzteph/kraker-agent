@@ -16,6 +16,11 @@ namespace Kracker.Base.Domain.Jobs
             throw new InvalidOperationException($"Can't work with the job: {_job}");
         }
 
+        public Task Finish(Exception exception)
+        {
+            throw new InvalidOperationException($"Can't work with the job: {_job}");
+        }
+
         public void Execute()
         {
             throw new InvalidOperationException($"Can't work with the job: {_job}");

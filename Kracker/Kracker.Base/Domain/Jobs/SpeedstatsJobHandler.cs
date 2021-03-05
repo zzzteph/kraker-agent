@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Kracker.Base.Domain.Folders;
 using Kracker.Base.Domain.HashCat;
 using Kracker.Base.Services;
@@ -32,5 +33,9 @@ namespace Kracker.Base.Domain.Jobs
             await _krakerApi.SendSpeedStats(_agentId,
                 stat);
         }
+
+        public override Task Finish(Exception exception)
+            => _krakerApi.SendSpeedStats(_agentId, new SpeedStatResponse(_job.HashTypeId, "0", 0));
+
     }
 }

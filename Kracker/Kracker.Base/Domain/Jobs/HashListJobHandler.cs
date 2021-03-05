@@ -1,10 +1,10 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Kracker.Base.Domain.HashCat;
 using Kracker.Base.Services;
 using Kracker.Base.Services.Model.Jobs;
 using Kracker.Base.Services.Model.Responses;
-using Serilog;
 
 namespace Kracker.Base.Domain.Jobs
 {
@@ -18,8 +18,7 @@ namespace Kracker.Base.Domain.Jobs
             string tempFilesDirectoryPath,
             ITempFileManager tempFileManager,
             HashListJob job,
-            IHashCatCommandExecutorBuilder executorBuilder,
-            ILogger logger) : base(
+            IHashCatCommandExecutorBuilder executorBuilder) : base(
             job,
             agentId,
             tempFileManager.BuildTempFilePaths(tempFilesDirectoryPath),
@@ -54,5 +53,10 @@ namespace Kracker.Base.Domain.Jobs
                     _job.HashListId,
                     new HashListResponse(executionResult.Output.Count, null, executionResult.ExecutionTime));
         }
+
+        public override Task Finish(Exception exception)
+        => _krakerApi.SendHashList(_agentId, _job.HashListId,
+            new HashListResponse(0, exception.Message, 0));
+
     }
 }

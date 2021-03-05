@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Kracker.Base;
@@ -8,7 +7,6 @@ using Kracker.Base.Domain.Configuration;
 using Kracker.Base.Domain.Inventory;
 using Kracker.Base.Domain.Jobs;
 using Kracker.Base.Injection;
-using Kracker.Base.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -91,6 +89,7 @@ namespace Kracker.App
                     catch (Exception e)
                     {
                         logger.Error($"Got an unhandled exception: {e}");
+                        agent.StopOnError(e);
                         agent = container.GetService<IAgent>();
                     }
                 },

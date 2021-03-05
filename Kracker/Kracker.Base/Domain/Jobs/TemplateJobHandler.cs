@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Kracker.Base.Domain.Folders;
 using Kracker.Base.Domain.HashCat;
@@ -30,5 +31,9 @@ namespace Kracker.Base.Domain.Jobs
                 new TemplateResponse(keyspaceIsLong?keyspaceAsLong:0, null, executionResult.ExecutionTime)
             );
         }
+
+        public override Task Finish(Exception exception) 
+            => _krakerApi.SendTemplate(_agentId, _job.TemplateId,
+            new TemplateResponse(0, exception.Message, 0));
     }
 }

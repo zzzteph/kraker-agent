@@ -11,6 +11,7 @@ namespace Kracker.Base.Domain.Jobs
     public interface IAgent
     {
         Task Work();
+        Task StopOnError(Exception exception);
     }
 
     public class Agent : IAgent
@@ -22,7 +23,6 @@ namespace Kracker.Base.Domain.Jobs
         private readonly FiniteStateMachine _switch;
         private readonly IJobHandler _incorrectJobHandler;
         private IJobHandler _jobHandler;
-        
 
         public Agent(IJobHandlerProvider jobHandlerProvider,
             IAgentIdManager agentIdManager,
@@ -46,7 +46,10 @@ namespace Kracker.Base.Domain.Jobs
             await _switch.RunAction();
         }
 
-        public async Task WaitJob()
+        public async Task StopOnError(Exception exception)
+            => await _jobHandler.Finish(exception);
+
+        private async Task WaitJob()
         {
             _switch.SetStateAction(DoNothing);
 

@@ -55,7 +55,7 @@ namespace Kracker.Base.Domain.HashCat
                     _logger.Warning($"[Speed] Can't calculate speed: {t}. {e}");
                 }
 
-            return speeds.Average();
+            return speeds.Any() ? speeds.Average() : 0;
         }
     }
 }

@@ -16,7 +16,6 @@ namespace Kracker.Base.Domain.Jobs
         private readonly ITempFileManager _tempFileManager;
         private readonly ILogger _logger;
 
-
         public BruteforceJobHandler(
             IKrakerApi krakerApi,
             string tempFolderPath,
@@ -77,5 +76,9 @@ namespace Kracker.Base.Domain.Jobs
             }
             _tempFileManager.DeleteTemFiles(_paths);
         }
+
+        public override Task Finish(Exception exception) =>
+            _krakerApi.SendJob(_agentId, _job.JobId,
+                new JobResponse(_job.JobId, null, string.Empty, 0, exception.Message, 0));
     }
 }

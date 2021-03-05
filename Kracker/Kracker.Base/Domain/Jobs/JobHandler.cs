@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Kracker.Base.Domain.Folders;
 using Kracker.Base.Domain.HashCat;
 using Kracker.Base.Services;
@@ -52,6 +53,6 @@ namespace Kracker.Base.Domain.Jobs
         }
 
         public abstract Task Finish();
-        
+        public abstract Task Finish(Exception exception);
     }
 }
