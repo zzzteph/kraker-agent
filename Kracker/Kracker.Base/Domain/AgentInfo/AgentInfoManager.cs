@@ -16,8 +16,8 @@ namespace Kracker.Base.Domain.AgentInfo
     public interface IAgentInfoManager
     {
         Task<AgentInfo> Build();
-        OperationResult<AgentInfo> GetFromFile();
-        OperationResult Save(AgentInfo agentInfo);
+        AgentInfo GetFromFile();
+        void Save(AgentInfo agentInfo);
     }
 
     public class AgentInfoManager : IAgentInfoManager
@@ -35,40 +35,28 @@ namespace Kracker.Base.Domain.AgentInfo
             _agentInfoFilePath = Path.Combine(appFolder.Value, ArtefactsFolder, AgentInfoFile);
         }
 
-        public OperationResult<AgentInfo> GetFromFile()
+        public AgentInfo? GetFromFile()
         {
             if (!File.Exists(_agentInfoFilePath))
-                return OperationResult<AgentInfo>.Success(null);
+                return null;
             try
             {
                 var agentInfo = JsonSerializer
                     .Deserialize<AgentInfo>(File.ReadAllText(_agentInfoFilePath));
 
-                return OperationResult<AgentInfo>.Success(agentInfo);
+                return agentInfo;
             }
             catch (Exception e)
             {
                 _logger.Error(e, "Can't read the agent info file");
 
-                return OperationResult<AgentInfo>.Fail(
-                    "The agent info file exists, but can't read it");
+                return null;
             }
         }
 
-        public OperationResult Save(AgentInfo agentInfo)
-        {
-            try
-            {
-                File.WriteAllText(_agentInfoFilePath,
-                    JsonSerializer.Serialize(agentInfo));
-                return OperationResult.Success;
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, "Fail during save the agent info fil");
-                return OperationResult.Fail("Fail during save the agent info file");
-            }
-        }
+        public void Save(AgentInfo agentInfo) =>
+            File.WriteAllText(_agentInfoFilePath,
+                JsonSerializer.Serialize(agentInfo));
 
         public async Task<AgentInfo> Build()
         {

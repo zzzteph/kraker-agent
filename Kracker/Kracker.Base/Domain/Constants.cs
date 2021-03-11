@@ -25,5 +25,11 @@ namespace Kracker.Base.Domain
             public const string DoNothing = "donothing";
             public const string Incorrect = "incorrect";
         }
+        
+        public static class WorkStatuses
+        {
+            public const string Stop = "stop";
+            public const string Continue = "continue";
+        }
     }
 }

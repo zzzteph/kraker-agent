@@ -5,15 +5,15 @@ namespace Kracker.Base.Tools
 {
     public class FiniteStateMachine
     {
-        private Func<Task> activeStateAction;
+        private Func<Task> _activeStateAction;
 
         public FiniteStateMachine(Func<Task> initialAction)
         {
-            activeStateAction = initialAction;
+            _activeStateAction = initialAction;
         }
 
-        public void SetStateAction(Func<Task> newAction) => activeStateAction = newAction;
+        public void SetStateAction(Func<Task> newAction) => _activeStateAction = newAction;
 
-        public Task RunAction() => activeStateAction.Invoke();
+        public Task RunAction() => _activeStateAction.Invoke();
     }
 }

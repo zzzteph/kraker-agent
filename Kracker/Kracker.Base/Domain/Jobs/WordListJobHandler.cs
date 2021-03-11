@@ -66,7 +66,9 @@ namespace Kracker.Base.Domain.Jobs
             else
             {
                 _logger.Information("An output file doesn't exist");
-                await _krakerApi.SendJob(_agentId, jobId, new (jobId, null, string.Empty, (long) speed, null, executionResult.ExecutionTime));
+                
+                var potfile = Convert.ToBase64String(File.ReadAllBytes(_paths.PotFile));
+                await _krakerApi.SendJob(_agentId, jobId, new (jobId, null, potfile, (long) speed, null, executionResult.ExecutionTime));
             }
             _tempFileManager.DeleteTemFiles(_paths);
         }

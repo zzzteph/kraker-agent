@@ -51,7 +51,8 @@ namespace Kracker.Base.Domain
             _agentInfoManager.Save(agentInfo);
         }
 
-        private (bool IsNeeded, string? AgentId, AgentInfo.AgentInfo ActualAgentInfo) RegistrationIsNeeded()
+        private (bool IsNeeded, string? AgentId, AgentInfo.AgentInfo ActualAgentInfo)
+            RegistrationIsNeeded()
         {
             var agentId = _agentIdManager.GetFromFile();
             
@@ -60,14 +61,12 @@ namespace Kracker.Base.Domain
             if (agentId.Id is null or "")
                 return (true, agentId.Id, actualAgentInfo);
 
-            var oldAgentInfoOR = _agentInfoManager.GetFromFile();
+            var oldAgentInfo = _agentInfoManager.GetFromFile();
 
-            if (!oldAgentInfoOR.IsSuccess || oldAgentInfoOR.Result is null)
+            if (oldAgentInfo is null)
                 return (true, agentId.Id, actualAgentInfo);
 
-            var oldAgentInfo = oldAgentInfoOR.Result;
-
-            if (oldAgentInfo.OperationalSystem != actualAgentInfo.OperationalSystem
+             if (oldAgentInfo.OperationalSystem != actualAgentInfo.OperationalSystem
                 || oldAgentInfo.HostName != actualAgentInfo.HostName
                 || oldAgentInfo.Ip != actualAgentInfo.Ip)
                 return (true, agentId.Id, actualAgentInfo);

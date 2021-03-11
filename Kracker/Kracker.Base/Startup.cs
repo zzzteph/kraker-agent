@@ -4,57 +4,46 @@ using Kracker.Base.Domain;
 using Kracker.Base.Domain.Configuration;
 using Kracker.Base.Domain.HashCat;
 using Kracker.Base.Domain.Inventory;
-using Kracker.Base.Services;
-using Kracker.Base.Tools;
+using Kracker.Base.Domain.Jobs;
 
 namespace Kracker.Base
 {
     public interface IStartup
     {
-        Task<OperationResult> Start();
+        Task<IAgent> PrepareAgent();
     }
 
     public class Startup : IStartup
     {
         private readonly IConfigValidator _configValidator;
         private readonly IAgentRegistrationManager _registrationManager;
-        private readonly IInventoryManager _inventoryManager;
         private readonly IWorkingDirectoryProvider _workingDirectoryProvider;
-        
-        private readonly IKrakerApi _krakerApi;
-        private readonly Config _config;
+        private readonly IAgentBuilder _agentBuilder;
+        private readonly IInventoryManager _inventoryManager;
 
-        public Startup(IKrakerApi krakerApi, 
+        public Startup(
             IConfigValidator configValidator,
-            Config config,
             IAgentRegistrationManager registrationManager,
-            IInventoryManager inventoryManager,
-            IWorkingDirectoryProvider workingDirectoryProvider)
+            IWorkingDirectoryProvider workingDirectoryProvider, IAgentBuilder agentBuilder, IInventoryManager inventoryManager)
         {
-            _krakerApi = krakerApi;
             _configValidator = configValidator;
-            _config = config;
             _registrationManager = registrationManager;
-            _inventoryManager = inventoryManager;
             _workingDirectoryProvider = workingDirectoryProvider;
+            _agentBuilder = agentBuilder;
+            _inventoryManager = inventoryManager;
         }
 
-        public async Task<OperationResult> Start()
+        public async Task<IAgent> PrepareAgent()
         {
             Environment.CurrentDirectory = _workingDirectoryProvider.Get();
             
-            var configResult = _configValidator.Validate();
-            if (!configResult.IsSuccess)
-                return OperationResult.Fail(configResult.Error ?? "The config is incorrect");
+            _configValidator.Validate();
 
             await _registrationManager.Register();
             
-            var inventoryResult = await _inventoryManager.Initialize();
+            await _inventoryManager.Initialize();
 
-            if (!inventoryResult.IsSuccess)
-                return OperationResult.Fail(inventoryResult.Error?? "Inventory isn't initialized");
-
-            return OperationResult.Success;
+            return _agentBuilder.Build();
         }
     }
 }

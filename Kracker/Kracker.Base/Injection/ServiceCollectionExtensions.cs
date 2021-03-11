@@ -25,7 +25,7 @@ namespace Kracker.Base.Injection
                 .AddPolicyHandler(HttpPolicyExtensions
                     .HandleTransientHttpError()
                     .Or<HttpRequestException>()
-                    .OrResult(responce=> (int) responce.StatusCode >= 400)
+                    //.OrResult(responce=> (int) responce.StatusCode >= 400)
                     .WaitAndRetryAsync(3,
                         attempt => TimeSpan.FromMilliseconds(300),
                         (ex, span) => Log.Error("{0} for {1} {2}. {3} ",
@@ -45,8 +45,7 @@ namespace Kracker.Base.Injection
                     .AddClasses()
                     .AsImplementedInterfaces()
                     .WithSingletonLifetime()
-                )
-                .AddTransient<IAgent, Agent>();
+                );
 
         public static IServiceCollection RegisterLogging(this IServiceCollection services)
         {

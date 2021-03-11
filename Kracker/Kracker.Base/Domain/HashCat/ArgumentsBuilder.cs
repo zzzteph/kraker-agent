@@ -28,7 +28,7 @@ namespace Kracker.Base.Domain.HashCat
             _workedFolders = workedFoldersProvider.Get();
             _options = config.HashCat.Options;
             _force = config.HashCat.NeedForce
-                ? "--force "
+                ? "--force --self-test-disable "
                 : string.Empty;
         }
 

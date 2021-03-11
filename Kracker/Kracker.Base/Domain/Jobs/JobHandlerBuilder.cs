@@ -19,7 +19,7 @@ namespace Kracker.Base.Domain.Jobs
     
     public class JobHandlerBuilder : IJobHandlerBuilder
     {
-        private readonly string _agentId;
+        private readonly IAgentIdManager _agentIdManager;
         private readonly IHashCatCommandExecutorBuilder _executorBuilder;
         private readonly IKrakerApi _krakerApi;
         private readonly ILogger _logger;
@@ -38,7 +38,7 @@ namespace Kracker.Base.Domain.Jobs
             _krakerApi = krakerApi;
             _workedFolders = workedFoldersProvider.Get();
             _tempFileManager = tempFileManager;
-            _agentId = agentIdManager.GetCurrent().Id;
+            _agentIdManager = agentIdManager;
             _speedCalculator = speedCalculator;
             _logger = logger;
             _executorBuilder = executorBuilder;
@@ -48,7 +48,7 @@ namespace Kracker.Base.Domain.Jobs
             => new BruteforceJobHandler(_krakerApi,
                 _workedFolders.TempFolderPath,
                 _tempFileManager,
-                _agentId,
+                _agentIdManager.GetCurrent().Id,
                 _speedCalculator,
                 _logger,
                 job as BruteforceJob,
@@ -56,23 +56,23 @@ namespace Kracker.Base.Domain.Jobs
 
         public IJobHandler BuildHashList(AbstractJob job)
             => new HashListJobHandler(_krakerApi,
-                _agentId,
+                _agentIdManager.GetCurrent().Id,
                 _workedFolders.TempFolderPath,
                 _tempFileManager,
                 job as HashListJob,
                 _executorBuilder);
 
         public IJobHandler BuildTemplate(AbstractJob job)
-            => new TemplateJobHandler(job as TemplateJob, _krakerApi, _executorBuilder, _agentId);
+            => new TemplateJobHandler(job as TemplateJob, _krakerApi, _executorBuilder, _agentIdManager.GetCurrent().Id);
 
 
         public IJobHandler BuildWordlist(AbstractJob job)
             => new WordListJobHandler(job as WordListJob, _krakerApi, _tempFileManager, _workedFolders.TempFolderPath,
-                _executorBuilder, _agentId, _speedCalculator, _logger);
+                _executorBuilder, _agentIdManager.GetCurrent().Id, _speedCalculator, _logger);
 
 
         public IJobHandler BuildSpeedStat(AbstractJob job)
-            => new SpeedstatsJobHandler(_krakerApi, _speedCalculator, _agentId, _executorBuilder, job as SpeedStatJob);
+            => new SpeedstatsJobHandler(_krakerApi, _speedCalculator, _agentIdManager.GetCurrent().Id, _executorBuilder, job as SpeedStatJob);
 
         public IJobHandler BuildIncorrect(AbstractJob job)
             => new IncorrectJobHandler(job as IncorrectJob);

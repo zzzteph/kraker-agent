@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Kracker.Base;
+using Kracker.Base.Domain.AgentInfo;
 using Kracker.Base.Domain.Configuration;
 using Kracker.Base.Domain.Inventory;
-using Kracker.Base.Domain.Jobs;
 using Kracker.Base.Injection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Refit;
 using Serilog;
 
 namespace Kracker.App
@@ -31,21 +34,12 @@ namespace Kracker.App
             var container = ServiceProviderBuilder.Build(config);
             var logger = container.GetService<ILogger>();
 
-            var startResult = await container.GetService<IStartup>().Start();
-            if (!startResult.IsSuccess)
-            {
-                logger.Error($"Can't work. Reason: {startResult.Error}");
-                return;
-            }
-
             Console.CancelKeyPress += (s, o) 
                 => cancelKeyPressWater.SetResult(true);
-
-            AddYourselfToWerExcluded(logger);
+            
+            await Work(logger, config, container.GetService<IStartup>(), container.GetService<IAgentInfoProvider>());
 
             InitializeCheckInventoryTimer(logger, config, container.GetService<IInventoryManager>());
-
-            Work(logger, config, container);
 
             CleanUp();
 
@@ -75,22 +69,50 @@ namespace Kracker.App
             }, null, TimeSpan.FromSeconds(0), TimeSpan.FromMilliseconds(-1));
         }
 
-        private static void Work(ILogger logger, Config config, IServiceProvider container)
+        private static async Task Work(ILogger logger, Config config, IStartup startup,
+            IAgentInfoProvider agentInfoProvider)
         {
             var heartbeatPeriod = TimeSpan.FromSeconds(config.HearbeatPeriod.Value);
-            var agent = container.GetService<IAgent>();
+            var agent = await startup.PrepareAgent();
+            
+            var os = agentInfoProvider.Get().OperationalSystem;
+            if (os.StartsWith("Microsoft Win", StringComparison.InvariantCultureIgnoreCase))
+                AddYourselfToWerExcluded(logger);
+            
             agentTimer = new Timer(o =>
                 {
                     try
                     {
-                       var t = agent.Work();
-                       t.Wait();
+                        if (agent.IsStopped)
+                            agent = startup.PrepareAgent().Result;
+
+                        var t = agent.Work();
+                        t.Wait();
+                    }
+                    catch (AggregateException ex) when(ex.InnerExceptions.FirstOrDefault() is ApiException e)
+                    {
+                        if (e.StatusCode == HttpStatusCode.Unauthorized)
+                        {
+                            logger.Error(
+                                "Got an unauthorized status code from the server: {0} for {1} {2}. Restarting...",
+                                e.StatusCode,
+                                e.RequestMessage.Method,
+                                e.RequestMessage.RequestUri?.AbsoluteUri);
+                            
+                            agent = startup.PrepareAgent().Result;
+                        }
+                        else
+                            logger.Warning("{0} for {1} {2}",
+                                           e.StatusCode,
+                                           e.RequestMessage.Method,
+                                e.RequestMessage.RequestUri?.AbsoluteUri);
+
                     }
                     catch (Exception e)
                     {
                         logger.Error($"Got an unhandled exception: {e}");
                         agent.StopOnError(e);
-                        agent = container.GetService<IAgent>();
+                        agent = startup.PrepareAgent().Result;
                     }
                 },
                 null, TimeSpan.FromSeconds(0), heartbeatPeriod);

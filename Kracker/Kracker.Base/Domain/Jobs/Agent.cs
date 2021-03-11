@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Kracker.Base.Domain.AgentId;
 using Kracker.Base.Services;
 using Kracker.Base.Services.Model.Jobs;
+using Kracker.Base.Services.Model.Responses;
 using Kracker.Base.Tools;
 using Serilog;
 
@@ -10,6 +11,8 @@ namespace Kracker.Base.Domain.Jobs
 {
     public interface IAgent
     {
+        bool IsStopped { get; }
+
         Task Work();
         Task StopOnError(Exception exception);
     }
@@ -17,11 +20,11 @@ namespace Kracker.Base.Domain.Jobs
     public class Agent : IAgent
     {
         private readonly string _agentId;
+        private readonly IJobHandler _incorrectJobHandler;
         private readonly IJobHandlerProvider _jobHandlerProvider;
         private readonly IKrakerApi _krakerApi;
         private readonly ILogger _logger;
         private readonly FiniteStateMachine _switch;
-        private readonly IJobHandler _incorrectJobHandler;
         private IJobHandler _jobHandler;
 
         public Agent(IJobHandlerProvider jobHandlerProvider,
@@ -33,7 +36,7 @@ namespace Kracker.Base.Domain.Jobs
             _jobHandlerProvider = jobHandlerProvider;
             _krakerApi = krakerApi;
             _logger = logger;
-            _agentId = agentIdManager.GetCurrent().Id 
+            _agentId = agentIdManager.GetCurrent().Id
                        ?? throw new InvalidOperationException("The agent needs to have id");
 
             var incorrectJobHandler = new IncorrectJobHandler(new IncorrectJob("Haven't got any jobs"));
@@ -41,19 +44,32 @@ namespace Kracker.Base.Domain.Jobs
             _incorrectJobHandler = incorrectJobHandler;
         }
 
+        public bool IsStopped { get; private set; }
+
         public async Task Work()
         {
-            await _switch.RunAction();
+            await Try.Do(() => _switch.RunAction(),
+                exception =>
+                {
+                    _switch.SetStateAction(WaitJob);
+                    throw exception;
+                });
         }
 
         public async Task StopOnError(Exception exception)
-            => await _jobHandler.Finish(exception);
+        {
+            IsStopped = true;
+            await Try.Do(() => _jobHandler.Finish(exception),
+                e => _logger.Error("Can't finish the work: {0} {1}",
+                    Environment.NewLine, e));
+        }
 
         private async Task WaitJob()
         {
             _switch.SetStateAction(DoNothing);
 
             var job = await _krakerApi.GetJob(_agentId);
+
             _logger.Information("Got a job {0}", job);
 
             if (job == null || job is IncorrectJob or DoNothingJob)
@@ -68,7 +84,10 @@ namespace Kracker.Base.Domain.Jobs
             _switch.SetStateAction(ProcessJob);
         }
 
-        private Task DoNothing() => Task.CompletedTask;
+        private Task DoNothing()
+        {
+            return Task.CompletedTask;
+        }
 
         private async Task ProcessJob()
         {
@@ -76,8 +95,16 @@ namespace Kracker.Base.Domain.Jobs
 
             if (!_jobHandler.IsCompleted())
             {
-                var heartbeat = await _krakerApi.SendAgentStatus(_agentId, _jobHandler.GetJobDescription());
-                if (heartbeat.Status == "cancel")
+                var heartbeat =
+                    await Try.Do(()=>
+                     _krakerApi.SendAgentStatus(_agentId, _jobHandler.GetJobDescription()),
+                        e=>
+                        {
+                            _logger.Warning("Can't sent the status: {0}", e);
+                            return WorkStatus.Continue;
+                        });
+                
+                if (heartbeat.Status == Constants.WorkStatuses.Stop)
                 {
                     _logger.Information("The job is canceled");
                     _jobHandler.Cancel();

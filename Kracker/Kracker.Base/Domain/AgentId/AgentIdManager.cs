@@ -18,7 +18,7 @@ namespace Kracker.Base.Domain.AgentId
         public AgentIdManager(AppFolder appFolder)
         {
             _agentIdFilePath = Path.Combine(appFolder.Value, Constants.ArtefactsFolder, Constants.AgentIdFile);
-            _current = new AgentId(null);
+            _current = GetFromFile();
         }
 
         public AgentId GetCurrent()
@@ -42,8 +42,8 @@ namespace Kracker.Base.Domain.AgentId
             if (agentId is "")
                 File.Delete(_agentIdFilePath);
             
-            File.WriteAllText(_agentIdFilePath,agentId);
             _current = new AgentId(agentId);
+            File.WriteAllText(_agentIdFilePath,agentId);
         }
     }
 }

@@ -15,9 +15,9 @@ namespace Kracker.Base.Domain.Inventory
 {
     public interface IInventoryManager
     {
-        Task<OperationResult<Inventory>> Initialize();
+        Task Initialize();
         Inventory GetCurrent();
-        Task<Inventory> UpdateFileDescriptions();
+        Task UpdateFileDescriptions();
     }
 
     public class InventoryManager : IInventoryManager
@@ -51,11 +51,9 @@ namespace Kracker.Base.Domain.Inventory
             _currentInventory = new Inventory(_fileDescriptions.Values);
         }
 
-        public async Task<OperationResult<Inventory>> Initialize()
+        public async Task Initialize()
         {
-            try
-            {
-                _fileDescriptions = Directory.GetFiles(_workedFolders.RulesPath)
+            _fileDescriptions = Directory.GetFiles(_workedFolders.RulesPath)
                     .Concat(Directory.GetFiles(_workedFolders.WordlistPath))
                     .ToDictionary(p => p, _descriptionBuilder.Build);
 
@@ -64,14 +62,6 @@ namespace Kracker.Base.Domain.Inventory
                 var agentId = GetAgentId();
                 var files = await _krakerApi.SendAgentInventory(agentId, _fileDescriptions.Values);
                 _currentInventory = new Inventory(files);
-                return OperationResult<Inventory>.Success(_currentInventory);
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, "Can't prepare inventory");
-                return OperationResult<Inventory>.Fail(
-                    "[Inventory] Can't prepare inventory");
-            }
         }
 
         public Inventory GetCurrent() => _currentInventory;
@@ -80,7 +70,7 @@ namespace Kracker.Base.Domain.Inventory
             =>_agentIdManager.GetCurrent().Id ?? throw new InvalidOperationException("The agent needs to have id");
 
 
-        public async Task<Inventory> UpdateFileDescriptions()
+        public async Task UpdateFileDescriptions()
         {
             _logger.Information("[inventory] Time to check inventory!");
 
@@ -130,8 +120,6 @@ namespace Kracker.Base.Domain.Inventory
             {
                 _logger.Information("[inventory] Checking has finished, changes've not detected");
             }
-
-            return _currentInventory;
         }
     }
 }

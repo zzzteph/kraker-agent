@@ -1,13 +1,13 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Kracker.Base.Domain.HashCat;
-using Kracker.Base.Tools;
 using Serilog;
 
 namespace Kracker.Base.Domain.Configuration
 {
     public interface IConfigValidator
     {
-        OperationResult Validate();
+        void Validate();
     }
 
     public class ConfigValidator : IConfigValidator
@@ -25,7 +25,7 @@ namespace Kracker.Base.Domain.Configuration
             _workingDirectoryProvider = workingDirectoryProvider;
         }
 
-        public OperationResult Validate()
+        public void Validate()
         {
             var allGood = true;
 
@@ -60,7 +60,8 @@ namespace Kracker.Base.Domain.Configuration
                 allGood = false;
             }
 
-            return allGood ? OperationResult.Success : OperationResult.Fail("Config isn't correct");
+            if (!allGood)
+                throw new InvalidOperationException("Config isn't correct");
         }
     }
 }
